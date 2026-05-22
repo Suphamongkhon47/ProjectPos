@@ -5,7 +5,6 @@ products/views/import_product_manual.py
 """
 
 from decimal import Decimal
-import uuid
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -73,11 +72,7 @@ def _add_row_manual(request, stage):
         category_id = request.POST.get("category")
         raw_sku = (request.POST.get("sku") or "").strip().upper()
         
-        if raw_sku:
-            sku = raw_sku
-        else:
-            random_code = str(uuid.uuid4())[:8].upper()
-            sku = f"P-{random_code}"
+        sku = raw_sku
         
         name = (request.POST.get("name") or "").strip()
         

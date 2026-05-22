@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(cd /d \"D:\\\\Pos-Project\")",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

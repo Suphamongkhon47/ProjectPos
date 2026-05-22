@@ -554,12 +554,6 @@ document.getElementById('process-return-btn').addEventListener('click', async fu
     discount_return: discount
   };
   
-  if (refundMethod === 'transfer') {
-    payload.refund_bank = document.getElementById('refund-bank').value;
-    payload.refund_account = document.getElementById('refund-account').value;
-    payload.refund_name = document.getElementById('refund-name').value;
-  }
-  
   try {
     this.disabled = true;
     this.innerHTML = '<span class="loading loading-spinner"></span> กำลังบันทึก...';

@@ -19,9 +19,7 @@ def category_list(request):
     search = request.GET.get('search', '').strip()
     
     # Query หมวดหมู่ - ✅ 
-    categories = Category.objects.annotate(
-        product_count=Count('product')
-    ).order_by('name')
+    categories = Category.objects.annotate(product_count=Count('product')).order_by('name')
     
     # ✅ เก็บรายการทั้งหมดสำหรับ Dropdown
     all_categories = list(categories)
@@ -111,7 +109,7 @@ def category_delete(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     
     # ✅ เช็คว่ามีสินค้าในหมวดหมู่หรือไม่ - แก้เป็น 'product'
-    product_count = category.product.count()
+    product_count = category.product_set.count()
     
     if product_count > 0:
         messages.error(

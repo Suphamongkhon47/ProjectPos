@@ -174,7 +174,7 @@
             {# Status Filter #}
             <select name="status" class="select select-bordered bg-white w-full lg:w-36">
               <option value="">📌 ทุกสถานะ</option>
-              <option value="DRAFT" {% if status == 'DRAFT' %}selected{% endif %}>📝 Draft</option>
+              <option value="HOLD" {% if status == 'HOLD' %}selected{% endif %}>📝 HOLD</option>
               <option value="POSTED" {% if status == 'POSTED' %}selected{% endif %}>✅ Posted</option>
               <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>❌ Cancelled</option>
             </select>
@@ -300,8 +300,8 @@
                 </td>
                 
                 <td class="text-center">
-                  {% if item.sale.status == 'DRAFT' or item.sale.status == 'HOLD' %}
-                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded">📝 Draft</span>
+                  {% if item.sale.status == 'HOLD' or item.sale.status == 'HOLD' %}
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded">📝 HOLD</span>
                   {% elif item.sale.status == 'POSTED' %}
                     <span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">✅ Posted</span>
                   {% elif item.sale.status == 'CANCELLED' %}

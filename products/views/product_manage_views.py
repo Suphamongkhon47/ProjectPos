@@ -11,9 +11,8 @@ from django.core.paginator import Paginator
 
 # ✅ เพิ่ม import user_passes_test
 from django.contrib.auth.decorators import login_required, user_passes_test
-
 from products.Services.product_service import ProductService
-from products.models import Product, Category, StockMovement 
+from products.models import Product, Category, StockMovement , TransactionItem ,PurchaseItem
 
 # =========================================================
 # ✅ ฟังก์ชันเช็คสิทธิ์ (เฉพาะ Superuser เท่านั้น)
@@ -174,11 +173,7 @@ def delete_product(request, product_id):
     error_reasons = []
     
     # เช็ค Movement OUT
-    out_movements = StockMovement.objects.filter(
-        product=product,
-        movement_type='OUT'
-    )
-    
+    out_movements = StockMovement.objects.filter(product=product,movement_type='OUT')
     if out_movements.exists():
         out_count = out_movements.count()
         total_out = out_movements.aggregate(Sum('quantity'))['quantity__sum'] or 0
@@ -190,10 +185,8 @@ def delete_product(request, product_id):
         )
     
     # เช็ค SaleItem
-    try:
-        from products.models import SaleItem
-        
-        sale_items = SaleItem.objects.filter(product=product)
+    try:   
+        sale_items = TransactionItem.objects.filter(product=product)
         if sale_items.exists():
             sale_count = sale_items.count()
             can_delete = False
@@ -205,7 +198,6 @@ def delete_product(request, product_id):
     
     # เช็ค PurchaseItem
     try:
-        from products.models import PurchaseItem
         
         purchase_items = PurchaseItem.objects.filter(product=product)
         if purchase_items.exists():
@@ -313,12 +305,8 @@ def product_history(request, product_id):
     
     product = get_object_or_404(Product, id=product_id)
     
-    # =========================================================
-    # ✅ ส่วนที่แก้ไข: Logic การดึง Movement
-    # =========================================================
+
     if product.is_bundle:
-        # 1. ถ้าเป็นชุด (แม่) -> ให้ไปดึง ID ของลูกๆ มาด้วย
-        product = get_object_or_404(Product, id=product_id)
         
         # 2. ค้นหา Movement ที่เป็นของ "ตัวแม่" OR "ลูกๆ"
         movements = StockMovement.objects.filter(product=product).order_by('-created_at') # select_related เพื่อดึงชื่อสินค้าลูกมาแสดง
@@ -388,8 +376,7 @@ def bulk_delete_products(request):
         
         # เช็ค SaleItem
         try:
-            from products.models import SaleItem
-            if SaleItem.objects.filter(product=product).exists():
+            if TransactionItem.objects.filter(product=product).exists():
                 can_delete = False
                 reasons.append("อยู่ในรายการขาย")
         except:

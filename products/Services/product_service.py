@@ -27,8 +27,7 @@ class ProductService:
         all_models = []
         
         # ดึงข้อมูล
-        products = Product.objects.exclude(
-            compatible_models__isnull=True
+        products = Product.objects.exclude(compatible_models__isnull=True
         ).exclude(
             compatible_models=''
         ).values_list('compatible_models', flat=True)

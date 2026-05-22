@@ -100,9 +100,7 @@
                     </span>
                     <div class="flex-1 min-w-0">
                       <div class="font-semibold text-sm text-gray-800">{{ cat.name }}</div>
-                      {% if cat.description %}
                         <div class="text-xs text-gray-400 truncate">{{ cat.description|truncatewords:6 }}</div>
-                      {% endif %}
                     </div>
                     <span class="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{{ cat.product_count }}</span>
                   </button>
@@ -161,9 +159,9 @@
                     <button onclick="openEditModal({{ category.id }}, '{{ category.name|escapejs }}', '{{ category.description|escapejs }}')"
                             class="btn btn-ghost btn-xs text-yellow-600 hover:bg-yellow-50" title="แก้ไข">✏️</button>
                     <form method="post" action="{% url 'category_delete' category.id %}" style="display:inline;"
-                          onsubmit="return confirmDelete('{{ category.name|escapejs }}', {{ category.product_count }})">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-ghost btn-xs text-red-500 hover:bg-red-50" title="ลบ">🗑️</button>
+                          onsubmit="return confirm('⚠️ ยืนยันการลบหมวดหมู่ &quot;{{ category.name }}&quot; ใช่หรือไม่?\n(ระบบจะตรวจสอบจำนวนสินค้าก่อนทำการลบ)')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-ghost btn-xs text-red-500 hover:bg-red-50" title="ลบ">🗑️</button>
                     </form>
                   </div>
                 </td>
@@ -208,7 +206,7 @@
   </main>
 </div>
 
-{# ========== Modal เพิ่ม/แก้ไข ========== #}
+{# ========== Modal เพิ่ม ========== #}
 <dialog id="category_modal" class="modal">
   <div class="modal-box w-11/12 max-w-lg">
     <h3 class="font-bold text-xl mb-6 text-gray-900">
@@ -315,13 +313,6 @@
 
   function closeModal() { modal.close(); }
 
-  function confirmDelete(name, productCount) {
-    if (productCount > 0) {
-      alert(`❌ ไม่สามารถลบได้!\n\nหมวดหมู่ "${name}" มีสินค้า ${productCount} รายการ\n\nกรุณาลบหรือย้ายสินค้าก่อน`);
-      return false;
-    }
-    return confirm(`⚠️ คุณต้องการลบหมวดหมู่ "${name}" ใช่หรือไม่?\n\n❌ การลบไม่สามารถยกเลิกได้!`);
-  }
 </script>
 
 </body>

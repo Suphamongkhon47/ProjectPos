@@ -2,9 +2,10 @@ import calendar
 from django.db.models import Sum, F, DecimalField, Avg, Count, Case, When, Q, ExpressionWrapper
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 from django.utils import timezone
 from products.models import Transaction, TransactionItem
+from django.core.paginator import Paginator
 
 @login_required
 def sales_type_report(request):
@@ -224,7 +225,6 @@ def sales_type_report(request):
     # ===================================
     # 10. Pagination
     # ===================================
-    from django.core.paginator import Paginator
     paginator = Paginator(sales, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

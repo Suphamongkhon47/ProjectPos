@@ -2,6 +2,7 @@
 """
 
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Avg, F, ExpressionWrapper, DecimalField
 from django.utils import timezone
@@ -43,7 +44,6 @@ def dashboard(request):
     # Helper Dates
     date_7_days_ago = actual_today - timedelta(days=6)
     date_30_days_ago = actual_today - timedelta(days=29)
-    first_day_of_month = actual_today.replace(day=1)
     date_diff_days = (end_date - start_date).days + 1
 
     # Query Range
@@ -55,11 +55,7 @@ def dashboard(request):
     
     # ===== 2. Base QuerySets (กรอง Role ที่นี่ทีเดียว) =====
     # บิลขาย
-    sale_qs = Transaction.objects.filter(
-        transaction_date__range=(query_min, query_max),
-        doc_type='SALE',
-        status='POSTED'
-    )
+    sale_qs = Transaction.objects.filter(transaction_date__range=(query_min, query_max),doc_type='SALE',status='POSTED')
     # บิลคืน
     return_qs = Transaction.objects.filter(transaction_date__range=(query_min, query_max),doc_type='RETURN',status='POSTED')
     
@@ -180,6 +176,7 @@ def dashboard(request):
     # ===== 8. Inventory (เฉพาะ Owner) =====
     low_stock_products = []
     low_stock_count = 0
+    low_stock_qs1 = 0
     out_of_stock_count = 0
     inventory_value = 0
     
@@ -187,6 +184,7 @@ def dashboard(request):
         products = Product.objects.filter(is_active=True)
         out_of_stock_count = products.filter(quantity=0).count()
         low_stock_qs = products.filter(quantity__lte=10, quantity__gt=0)
+        low_stock_qs1 = products.filter(quantity__lte=10,).count()
         low_stock_count = low_stock_qs.count()
         low_stock_products = low_stock_qs.order_by('quantity')[:5]
         
@@ -195,37 +193,89 @@ def dashboard(request):
         )['val'] or 0
 
     context = {
-        'is_owner': is_owner,
-        'actual_today': actual_today,
-        'start_date': start_date,
-        'end_date': end_date,
-        'date_diff_days': date_diff_days,
+        'is_owner': is_owner, # บอก template ว่าเป็น Owner หรือไม่
+        'actual_today': actual_today, # วันปัจจุบัน (ไม่ใช่ end_date)
+        'start_date': start_date, # วันเริ่มต้นที่เลือก
+        'end_date': end_date, # วันสิ้นสุดที่เลือก
+        'date_diff_days': date_diff_days, # จำนวนวันในช่วงที่เลือก
         
         # Quick Dates
-        'date_7_days_ago': date_7_days_ago,
-        'date_30_days_ago': date_30_days_ago,
-        'first_day_of_month': first_day_of_month,
+        'date_7_days_ago': date_7_days_ago, #ย้อนหลัง 7 วัน
+        'date_30_days_ago': date_30_days_ago, #ย้อนหลัง 30 วัน
         
         # Stats
-        'net_sales': net_sales,
-        'total_bills': total_bills,
-        'avg_bill': avg_bill,
-        'net_items_count': net_items_count,
-        'net_profit': net_profit,
-        'net_profit_margin': net_profit_margin,
-        'change_percent': change_percent,
+        'net_sales': net_sales, # ยอดขายสุทธิ
+        'total_bills': total_bills, # จำนวนบิล
+        'avg_bill': avg_bill, # ยอดเฉลี่ยต่อบิล
+        'net_items_count': net_items_count, # จำนวนชิ้นสุทธิ
+        'net_profit': net_profit, # กำไรสุทธิ
+        'net_profit_margin': net_profit_margin, # % กำไรสุทธิ
+        'change_percent': change_percent, # % การเติบโตของยอดขาย เทียบกับช่วงก่อนหน้า
         'is_increase': change_percent >= 0,
         
         # Lists
-        'last_7_days': last_7_days,
-        'top_products': top_products_today,
-        'recent_payments': recent_payments,
+        'last_7_days': last_7_days, # ข้อมูลสำหรับกราฟ 7 วัน
+        'top_products': top_products_today, # สินค้าขายดีวันนี้
+        'recent_payments': recent_payments, # รายการชำระเงินล่าสุด
         
         # Inventory
         'low_stock_products': low_stock_products,
         'low_stock_count': low_stock_count,
         'out_of_stock_count': out_of_stock_count,
         'inventory_value': inventory_value,
+        'low_stock_qs1': low_stock_qs1,
     }
     
     return render(request, 'products/dashboards/dashboard.html', context)
+
+
+@login_required
+def dashboard_stats_api(request):
+    """API คืน stats วันนี้เป็น JSON สำหรับ WebSocket real-time update"""
+    today = timezone.localdate()
+    query_min = timezone.make_aware(datetime.combine(today, time.min))
+    query_max = timezone.make_aware(datetime.combine(today, time.max))
+
+    user = request.user
+    is_owner = user.is_superuser
+
+    sale_qs = Transaction.objects.filter(transaction_date__range=(query_min, query_max), doc_type='SALE', status='POSTED')
+    return_qs = Transaction.objects.filter(transaction_date__range=(query_min, query_max), doc_type='RETURN', status='POSTED')
+
+    if not is_owner:
+        sale_qs = sale_qs.filter(created_by=user)
+        return_qs = return_qs.filter(created_by=user)
+
+    total_sales = sale_qs.aggregate(t=Sum('grand_total'))['t'] or Decimal('0')
+    total_returns = abs(return_qs.aggregate(t=Sum('grand_total'))['t'] or Decimal('0'))
+    net_sales = total_sales - total_returns
+    total_bills = sale_qs.count()
+    avg_bill = float(net_sales / total_bills) if total_bills > 0 else 0
+
+    sale_items_qs = TransactionItem.objects.filter(transaction__in=sale_qs)
+    return_items_qs = TransactionItem.objects.filter(transaction__in=return_qs)
+    sold_qty = sale_items_qs.aggregate(q=Sum('quantity'))['q'] or 0
+    returned_qty = return_items_qs.aggregate(q=Sum('quantity'))['q'] or 0
+    net_items = float(sold_qty) - float(returned_qty)
+
+    net_profit = 0.0
+    net_profit_margin = 0.0
+    if is_owner:
+        profit_sales = sale_items_qs.aggregate(
+            p=Sum(ExpressionWrapper((F('unit_price') - F('cost_price')) * F('quantity'), output_field=DecimalField(max_digits=12, decimal_places=2)))
+        )['p'] or Decimal('0')
+        profit_returns = return_items_qs.aggregate(
+            p=Sum(ExpressionWrapper((F('unit_price') - F('cost_price')) * F('quantity'), output_field=DecimalField(max_digits=12, decimal_places=2)))
+        )['p'] or Decimal('0')
+        net_profit = float(profit_sales - profit_returns)
+        if net_sales > 0:
+            net_profit_margin = float(net_profit / float(net_sales) * 100)
+
+    return JsonResponse({
+        'net_sales': float(net_sales),
+        'total_bills': total_bills,
+        'avg_bill': avg_bill,
+        'net_items_count': net_items,
+        'net_profit': net_profit,
+        'net_profit_margin': net_profit_margin,
+    })

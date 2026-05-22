@@ -102,7 +102,7 @@
                         <p class="text-sm font-semibold text-indigo-900/60 uppercase tracking-wider">
                             {% if is_owner %}ยอดขายสุทธิ{% else %}ยอดขายของฉัน{% endif %}
                         </p>
-                        <h3 class="text-3xl font-extrabold text-slate-800 mt-2 leading-tight">{{ net_sales|floatformat:0|intcomma }} ฿</h3>
+                        <h3 id="stat-net-sales" class="text-3xl font-extrabold text-slate-800 mt-2 leading-tight">{{ net_sales|floatformat:0|intcomma }} ฿</h3>
                     </div>
                     <div class="icon-circle bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-600">
                         💰
@@ -132,7 +132,7 @@
                         <p class="text-sm font-semibold text-emerald-900/60 uppercase tracking-wider">
                             {% if is_owner %}กำไรสุทธิ{% else %}จำนวนชิ้นที่ขาย{% endif %}
                         </p>
-                        <h3 class="text-3xl font-extrabold text-slate-800 mt-2 leading-tight">
+                        <h3 id="stat-profit-items" class="text-3xl font-extrabold text-slate-800 mt-2 leading-tight">
                             {% if is_owner %}
                                 {{ net_profit|floatformat:0|intcomma }} ฿
                             {% else %}
@@ -161,7 +161,7 @@
                         <p class="text-sm font-semibold text-sky-900/60 uppercase tracking-wider">
                             {% if is_owner %}จำนวนบิลรวม{% else %}บิลที่เปิด{% endif %}
                         </p>
-                        <h3 class="text-3xl font-extrabold text-slate-800 mt-2 leading-tight">{{ total_bills|intcomma }} ใบ</h3>
+                        <h3 id="stat-total-bills" class="text-3xl font-extrabold text-slate-800 mt-2 leading-tight">{{ total_bills|intcomma }} ใบ</h3>
                     </div>
                     <div class="icon-circle bg-gradient-to-br from-sky-100 to-sky-50 text-sky-600">
                         🧾
@@ -169,7 +169,7 @@
                 </div>
                 <div class="mt-4 text-sm font-medium text-slate-500">
                     {% if total_bills > 0 %}
-                        เฉลี่ย: <span class="font-semibold">{{ avg_bill|floatformat:0|intcomma }}</span> ฿/บิล
+                        เฉลี่ย: <span id="stat-avg-bill" class="font-semibold">{{ avg_bill|floatformat:0|intcomma }}</span> ฿/บิล
                     {% else %}
                         ยังไม่มีรายการขาย
                     {% endif %}
@@ -210,7 +210,7 @@
         <div class="alert shadow-sm mb-8 rounded-xl border-0 bg-rose-50 text-rose-700 flex items-center p-4 relative overflow-hidden">
              <div class="absolute inset-0 bg-rose-100 opacity-50 blur-xl pointer-events-none"></div>
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6 relative z-10" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            <span class="text-sm font-semibold ml-2 relative z-10">แจ้งเตือน: มีสินค้า <strong class="text-rose-800 text-base">{{ out_of_stock_count }}</strong> รายการ หมดสต็อก! กรุณาตรวจสอบ</span>
+            <span class="text-sm font-semibold ml-2 relative z-10">แจ้งเตือน: มีสินค้า <strong class="text-rose-800 text-base">{{ out_of_stock_count }} รายการ</strong> หมดสต็อก! กรุณาตรวจสอบ</span>
         </div>
         {% endif %}
         
@@ -416,6 +416,55 @@
             }
         });
     });
+</script>
+
+<script>
+// ===== WebSocket Real-time Dashboard =====
+(function() {
+    const isOwner = {{ is_owner|yesno:"true,false" }};
+
+    function fmt(n) {
+        return Math.round(n).toLocaleString('th-TH');
+    }
+
+    function updateStats(stats) {
+        const elSales = document.getElementById('stat-net-sales');
+        const elProfitItems = document.getElementById('stat-profit-items');
+        const elBills = document.getElementById('stat-total-bills');
+        const elAvg = document.getElementById('stat-avg-bill');
+
+        if (elSales) elSales.textContent = fmt(stats.net_sales) + ' ฿';
+        if (elBills) elBills.textContent = fmt(stats.total_bills) + ' ใบ';
+        if (elAvg) elAvg.textContent = fmt(stats.avg_bill);
+        if (elProfitItems) {
+            if (isOwner) {
+                elProfitItems.textContent = fmt(stats.net_profit) + ' ฿';
+            } else {
+                elProfitItems.textContent = Math.round(stats.net_items_count) + ' ชิ้น';
+            }
+        }
+    }
+
+    function connectWS() {
+        const ws = new WebSocket("ws://" + window.location.host + "/ws/dashboard/");
+
+        ws.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.event === "sale_posted") {
+                fetch('/api/dashboard/stats/')
+                    .then(function(r) { return r.json(); })
+                    .then(function(stats) { updateStats(stats); });
+            }
+        };
+
+        ws.onclose = function() {
+            // reconnect อัตโนมัติหลัง 3 วิ
+            setTimeout(connectWS, 3000);
+        };
+    }
+
+    connectWS();
+})();
 </script>
 
 </body>

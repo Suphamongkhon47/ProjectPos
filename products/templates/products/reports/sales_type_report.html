@@ -255,7 +255,7 @@
             <select name="status" class="select select-bordered bg-white w-full lg:w-32">
               <option value="">📌 ทุกสถานะ</option>
               <option value="POSTED" {% if status == 'POSTED' %}selected{% endif %}>✅ สำเร็จ</option>
-              <option value="DRAFT" {% if status == 'DRAFT' %}selected{% endif %}>📝 ร่าง</option>
+              <option value="HOLD" {% if status == 'HOLD' %}selected{% endif %}>📝 HOLD</option>
               <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>❌ ยกเลิก</option>
             </select>
 
@@ -350,8 +350,8 @@
                 <td class="text-center">
                   {% if sale.status == 'POSTED' %}
                     <div class="badge badge-success gap-1 text-white py-2 px-3 border-0 shadow-sm">✅ Posted</div>
-                  {% elif sale.status == 'DRAFT' %}
-                    <div class="badge badge-ghost gap-1 py-3 px-3">📝 Draft</div>
+                  {% elif sale.status == 'HOLD' %}
+                    <div class="badge badge-ghost gap-1 py-3 px-3">📝 HOLD</div>
                   {% elif sale.status == 'CANCELLED' %}
                     <div class="badge badge-error gap-1 text-white py-3 px-3">❌ Cancelled</div>
                   {% endif %}

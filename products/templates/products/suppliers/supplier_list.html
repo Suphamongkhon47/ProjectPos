@@ -19,7 +19,7 @@
       <div class="mb-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">📇 ซัพพลายเออร์ / ตัวแทนจำหน่าย</h1>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">📇 ซัพพลายเออร์</h1>
             <p class="text-gray-600">จัดการข้อมูลซัพพลายเออร์และตัวแทนจำหน่าย</p>
           </div>
           
@@ -61,27 +61,27 @@
         </div>
       </div>
 
-      {# ค้นหา #}
-      <div class="card bg-white shadow-xl mb-6">
+      {# ค้นหาซัพพลายเออร์ #}
+      <div class="card bg-white shadow-xl mb-4">
         <div class="card-body">
-          <h2 class="card-title text-xl mb-4">🔍 ค้นหา</h2>
-          
+          <h2 class="card-title text-xl mb-4">🔍 ค้นหาซัพพลายเออร์</h2>
+
           <form method="get" class="flex gap-4">
             <div class="form-control flex-1">
-              <input type="text" 
-                     name="search" 
-                     class="input input-bordered w-full" 
-                     placeholder="ค้นหา ชื่อ หรือ เบอร์โทร..."
+              <input type="text"
+                     name="search"
+                     class="input input-bordered w-full"
+                     placeholder="ค้นหา ชื่อร้าน หรือ เบอร์โทร..."
                      value="{{ search_query }}">
             </div>
-            
+
             <button type="submit" class="btn btn-primary gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               ค้นหา
             </button>
-            
+
             {% if search_query %}
             <a href="{% url 'supplier_list' %}" class="btn btn-ghost">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,6 +91,48 @@
             </a>
             {% endif %}
           </form>
+        </div>
+      </div>
+
+      {# ค้นหาสินค้า → ดูว่าซัพพลายเออร์ไหนมี #}
+      <div class="card bg-white shadow-xl mb-6 border-2 border-orange-200">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-1">
+            🛒 ค้นหาสินค้า
+            <span class="badge badge-warning badge-sm ml-1">ดูว่าสั่งจากใครได้บ้าง</span>
+          </h2>
+          <p class="text-sm text-gray-500 mb-4">พิมพ์ชื่อสินค้าที่ต้องการนำเข้า ระบบจะแสดงว่าซัพพลายเออร์ไหนมีสินค้านั้น พร้อมเบอร์โทรและที่อยู่</p>
+
+          {# Input ค้นหา #}
+          <div class="relative">
+            <input type="text"
+                   id="productSearchForSupplier"
+                   class="input input-bordered w-full pr-10"
+                   placeholder="เช่น  ยาง, ผ้าเบรก, หัวเทียน, โช้คอัพ..."
+                   autocomplete="off"
+                   oninput="searchProductSupplier(this.value)">
+            <div id="productSearchSpinner" class="hidden absolute right-3 top-3">
+              <span class="loading loading-spinner loading-sm text-warning"></span>
+            </div>
+          </div>
+
+          {# ผลลัพธ์ #}
+          <div id="productSupplierResults" class="mt-4 hidden">
+
+            {# Summary #}
+            <div id="productSupplierSummary" class="flex items-center gap-2 mb-3 text-sm text-gray-600"></div>
+
+            {# การ์ดซัพพลายเออร์ #}
+            <div id="productSupplierCards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+            {# No result #}
+            <div id="productSupplierEmpty" class="hidden text-center py-8 text-gray-400">
+              <div class="text-4xl mb-2">🔍</div>
+              <div>ไม่พบซัพพลายเออร์ที่มีสินค้าตรงคำค้นหา</div>
+              <div class="text-xs mt-1">ลองตรวจสอบว่าสินค้าถูกกำหนดซัพพลายเออร์ไว้หรือยัง</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -143,9 +185,17 @@
                   </td>
                   
                   <td class="text-center">
-                    <span class="badge badge-primary badge-lg">
-                      {{ supplier.product_count }} รายการ
+                    {% if supplier.product_count > 0 %}
+                    <span class="badge badge-primary badge-lg cursor-pointer hover:badge-secondary transition-all"
+                          onclick="viewSupplierProducts({{ supplier.id }}, '{{ supplier.name|escapejs }}')"
+                          title="คลิกเพื่อดูสินค้า">
+                      🔍 {{ supplier.product_count }} รายการ
                     </span>
+                    {% else %}
+                    <span class="badge badge-ghost badge-lg">
+                      0 รายการ
+                    </span>
+                    {% endif %}
                   </td>
                   
                   <td class="text-center">
@@ -279,7 +329,299 @@
   </form>
 </dialog>
 
+{# ===== Modal: ดูสินค้าของ Supplier ===== #}
+<dialog id="supplierProductsModal" class="modal">
+  <div class="modal-box max-w-5xl w-full">
+
+    {# Header #}
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="font-bold text-2xl" id="modalSupplierName">📦 สินค้าของซัพพลายเออร์</h3>
+        <div id="modalSupplierStats" class="flex gap-3 mt-1 text-sm text-gray-500"></div>
+      </div>
+      <button onclick="document.getElementById('supplierProductsModal').close()"
+              class="btn btn-sm btn-circle btn-ghost">✕</button>
+    </div>
+
+    {# Tabs #}
+    <div role="tablist" class="tabs tabs-bordered mb-4">
+      <a role="tab" class="tab tab-active" id="tab-products" onclick="switchTab('products')">
+        📦 สินค้าในระบบ
+      </a>
+      <a role="tab" class="tab" id="tab-purchases" onclick="switchTab('purchases')">
+        🧾 ประวัติการนำเข้า
+      </a>
+    </div>
+
+    {# Loading #}
+    <div id="modalLoading" class="text-center py-10">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="text-gray-500 mt-2">กำลังโหลด...</p>
+    </div>
+
+    {# Tab: สินค้าในระบบ #}
+    <div id="panel-products" class="hidden">
+      <div class="mb-3">
+        <input type="text" id="productSearchInput" class="input input-bordered w-full input-sm"
+               placeholder="🔍 ค้นหาสินค้า (SKU / ชื่อ / รุ่นรถ)..."
+               oninput="filterProducts()">
+      </div>
+      <div class="overflow-x-auto max-h-[55vh] overflow-y-auto">
+        <table class="table table-zebra table-sm">
+          <thead class="bg-gradient-to-r from-blue-600 to-purple-600 text-white sticky top-0">
+            <tr>
+              <th>SKU</th>
+              <th>ชื่อสินค้า</th>
+              <th>หมวดหมู่</th>
+              <th class="text-right">ราคาทุน</th>
+              <th class="text-right">ราคาขาย</th>
+              <th class="text-center">คงเหลือ</th>
+              <th class="text-center">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody">
+          </tbody>
+        </table>
+        <div id="noProductMsg" class="hidden text-center py-6 text-gray-400">
+          <div class="text-3xl mb-1">🔍</div>
+          ไม่พบสินค้าที่ค้นหา
+        </div>
+      </div>
+    </div>
+
+    {# Tab: ประวัติการนำเข้า #}
+    <div id="panel-purchases" class="hidden">
+      <div class="overflow-x-auto max-h-[55vh] overflow-y-auto">
+        <table class="table table-zebra table-sm">
+          <thead class="bg-gradient-to-r from-green-600 to-teal-600 text-white sticky top-0">
+            <tr>
+              <th>เลขที่เอกสาร</th>
+              <th>วันที่นำเข้า</th>
+              <th class="text-right">ยอดรวม</th>
+              <th class="text-center">สถานะ</th>
+              <th>ผู้บันทึก</th>
+            </tr>
+          </thead>
+          <tbody id="purchaseTableBody">
+          </tbody>
+        </table>
+        <div id="noPurchaseMsg" class="hidden text-center py-6 text-gray-400">
+          <div class="text-3xl mb-1">📋</div>
+          ยังไม่มีประวัติการนำเข้าจากซัพพลายเออร์นี้
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 mt-2 text-right">* แสดง 10 รายการล่าสุด</p>
+    </div>
+
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+
 <script>
+// ─── ค้นหาสินค้า → ดูซัพพลายเออร์ ───
+let productSearchTimer = null;
+
+function searchProductSupplier(q) {
+  clearTimeout(productSearchTimer);
+
+  const resultsBox  = document.getElementById('productSupplierResults');
+  const spinner     = document.getElementById('productSearchSpinner');
+  const emptyMsg    = document.getElementById('productSupplierEmpty');
+  const summary     = document.getElementById('productSupplierSummary');
+
+  if (!q || q.trim().length < 2) {
+    resultsBox.classList.add('hidden');
+    return;
+  }
+
+  // Debounce 400ms
+  productSearchTimer = setTimeout(() => {
+    spinner.classList.remove('hidden');
+
+    fetch(`/supplier/search-by-product/?q=${encodeURIComponent(q.trim())}`)
+      .then(res => res.json())
+      .then(data => {
+        spinner.classList.add('hidden');
+        resultsBox.classList.remove('hidden');
+
+        if (data.count === 0) {
+          tbody.innerHTML = '';
+          emptyMsg.classList.remove('hidden');
+          summary.innerHTML = '';
+          return;
+        }
+
+        emptyMsg.classList.add('hidden');
+        summary.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          พบ <strong class="text-orange-600">${data.count}</strong> ซัพพลายเออร์ที่มีสินค้านี้
+        `;
+
+        const cards = document.getElementById('productSupplierCards');
+        cards.innerHTML = data.results.map(r => {
+          const phone = r.supplier_phone !== '-'
+            ? `<a href="tel:${r.supplier_phone}" class="link link-primary font-medium">📞 ${r.supplier_phone}</a>`
+            : `<span class="text-gray-400">📞 -</span>`;
+          const addr = r.supplier_address !== '-'
+            ? `<div class="text-sm text-gray-500 mt-1">📍 ${r.supplier_address}</div>`
+            : '';
+          return `
+            <div class="card border-2 border-orange-200 bg-orange-50 hover:border-orange-400 hover:shadow-md transition-all">
+              <div class="card-body p-4">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="font-bold text-lg text-gray-800">🏢 ${r.supplier_name}</div>
+                  <span class="badge badge-warning badge-sm whitespace-nowrap">${r.matched_count} รายการ</span>
+                </div>
+                <div class="mt-1">${phone}</div>
+                ${addr}
+                <div class="card-actions justify-end mt-3">
+                  <button onclick="viewSupplierProducts(${r.supplier_id}, '${r.supplier_name.replace(/'/g, "\\'")}')"
+                          class="btn btn-sm btn-outline btn-warning gap-1">
+                    📦 ดูสินค้าทั้งหมด
+                  </button>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+      })
+      .catch(err => {
+        spinner.classList.add('hidden');
+        console.error(err);
+      });
+  }, 400);
+}
+
+// ─── ดูสินค้าของ Supplier ───
+let allProducts = []; // เก็บ data ทั้งหมดเพื่อ filter
+
+function viewSupplierProducts(supplierId, supplierName) {
+  const modal = document.getElementById('supplierProductsModal');
+
+  // Reset UI
+  document.getElementById('modalSupplierName').textContent = `📦 ${supplierName}`;
+  document.getElementById('modalSupplierStats').innerHTML = '';
+  document.getElementById('modalLoading').classList.remove('hidden');
+  document.getElementById('panel-products').classList.add('hidden');
+  document.getElementById('panel-purchases').classList.add('hidden');
+  document.getElementById('productSearchInput').value = '';
+  switchTab('products');
+
+  modal.showModal();
+
+  // AJAX ดึงข้อมูล
+  fetch(`/supplier/${supplierId}/products/`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('modalLoading').classList.add('hidden');
+
+      // แสดงสถิติ
+      const totalAmt = data.stats.total_purchase_amount.toLocaleString('th-TH', {minimumFractionDigits: 2});
+      document.getElementById('modalSupplierStats').innerHTML = `
+        <span class="badge badge-primary">📦 สินค้า ${data.stats.product_count} รายการ</span>
+        <span class="badge badge-success">🧾 สั่งซื้อ ${data.stats.purchase_count} ครั้ง</span>
+        <span class="badge badge-warning">💰 มูลค่านำเข้ารวม ฿${totalAmt}</span>
+      `;
+
+      // ─── Render ตารางสินค้า ───
+      allProducts = data.products;
+      renderProducts(allProducts);
+
+      // ─── Render ตารางประวัตินำเข้า ───
+      const purchaseBody = document.getElementById('purchaseTableBody');
+      if (data.purchases.length === 0) {
+        purchaseBody.innerHTML = '';
+        document.getElementById('noPurchaseMsg').classList.remove('hidden');
+      } else {
+        document.getElementById('noPurchaseMsg').classList.add('hidden');
+        purchaseBody.innerHTML = data.purchases.map(pu => {
+          const statusColor = pu.status_code === 'POSTED' ? 'badge-success'
+                            : pu.status_code === 'DRAFT'  ? 'badge-warning'
+                            : 'badge-error';
+          const amt = pu.grand_total.toLocaleString('th-TH', {minimumFractionDigits: 2});
+          return `
+            <tr>
+              <td><a href="/purchases/${pu.id}/"
+                     class="link link-primary font-mono font-bold" target="_blank">
+                ${pu.doc_no}
+              </a></td>
+              <td>${pu.purchase_date}</td>
+              <td class="text-right font-semibold">฿${amt}</td>
+              <td class="text-center"><span class="badge ${statusColor} badge-sm">${pu.status}</span></td>
+              <td>${pu.created_by}</td>
+            </tr>`;
+        }).join('');
+      }
+
+      document.getElementById('panel-products').classList.remove('hidden');
+    })
+    .catch(err => {
+      document.getElementById('modalLoading').classList.add('hidden');
+      document.getElementById('modalSupplierStats').innerHTML =
+        `<span class="text-error">❌ โหลดข้อมูลไม่สำเร็จ</span>`;
+      console.error(err);
+    });
+}
+
+function renderProducts(products) {
+  const tbody = document.getElementById('productTableBody');
+  if (products.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('noProductMsg').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('noProductMsg').classList.add('hidden');
+  tbody.innerHTML = products.map(p => {
+    const statusBadge = p.is_active
+      ? `<span class="badge badge-success badge-sm">เปิดขาย</span>`
+      : `<span class="badge badge-error badge-sm">ปิด</span>`;
+    const stockClass = p.quantity <= 0 ? 'text-error font-bold' : p.quantity <= 5 ? 'text-warning font-bold' : 'text-success font-bold';
+    const cost = p.cost_price.toLocaleString('th-TH', {minimumFractionDigits: 2});
+    const sell = p.selling_price.toLocaleString('th-TH', {minimumFractionDigits: 2});
+    return `
+      <tr>
+        <td class="font-mono text-xs">${p.sku}</td>
+        <td>
+          <div class="font-semibold">${p.name}</div>
+          ${p.compatible_models !== '-' ? `<div class="text-xs text-gray-400">🚗 ${p.compatible_models}</div>` : ''}
+        </td>
+        <td><span class="badge badge-outline badge-sm">${p.category}</span></td>
+        <td class="text-right">฿${cost}</td>
+        <td class="text-right">฿${sell}</td>
+        <td class="text-center ${stockClass}">${p.quantity} ${p.unit}</td>
+        <td class="text-center">${statusBadge}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ค้นหาสินค้าใน Modal (Filter แบบ Real-time)
+function filterProducts() {
+  const q = document.getElementById('productSearchInput').value.toLowerCase();
+  if (!q) {
+    renderProducts(allProducts);
+    return;
+  }
+  const filtered = allProducts.filter(p =>
+    p.sku.toLowerCase().includes(q) ||
+    p.name.toLowerCase().includes(q) ||
+    p.compatible_models.toLowerCase().includes(q) ||
+    p.category.toLowerCase().includes(q)
+  );
+  renderProducts(filtered);
+}
+
+// Switch Tab
+function switchTab(tab) {
+  ['products', 'purchases'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('tab-active', t === tab);
+    document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+  });
+}
+
 // เปิด Modal เพิ่มใหม่
 function openAddModal() {
   const modal = document.getElementById('supplierModal');

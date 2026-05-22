@@ -177,7 +177,7 @@
                   </label>
                   <select name="role_selection" class="select select-bordered text-base bg-yellow-50">
                     <option value="EMPLOYEE" {% if not employee.user.is_superuser %}selected{% endif %}>
-                      🔵 พนักงานทั่วไป (Manager) - ขายของ เช็คสต็อก
+                      🔵 พนักงานทั่วไป (Staff) - ขายของ เช็คสต็อก
                     </option>
                     <option value="OWNER" {% if employee.user.is_superuser %}selected{% endif %}>
                       👑 เจ้าของร้าน (Superuser) - สิทธิ์สูงสุด

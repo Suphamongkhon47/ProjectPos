@@ -21,12 +21,12 @@ class Employee(models.Model):
     # ==============================
     # 🛡️ 2. กำหนดสิทธิ์
     # ==============================
-    # เหลือแค่ MANAGER (พนักงาน) อย่างเดียว
+    # เหลือแค่ STAFF (พนักงาน) อย่างเดียว
     # (ส่วนเจ้าของร้านจะใช้ is_superuser ในตาราง User แทน)
     POSITION_CHOICES = [
-        ('MANAGER', 'พนักงาน'),       
+        ('STAFF', 'พนักงาน'),       
     ]
-    position = models.CharField(max_length=10, choices=POSITION_CHOICES, default='MANAGER', verbose_name="ตำแหน่ง")
+    position = models.CharField(max_length=10, choices=POSITION_CHOICES, default='STAFF', verbose_name="ตำแหน่ง")
 
     def __str__(self):
         role = "เจ้าของร้าน" if self.user.is_superuser else "พนักงาน"

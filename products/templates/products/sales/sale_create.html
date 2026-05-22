@@ -229,54 +229,112 @@
   <form method="dialog" class="modal-backdrop bg-black/20"><button></button></form>
 </dialog>
 
-{# JavaScript Logic (คงเดิม 100%) #}
+{# JavaScript Logic (มาร์คละเอียด) #}
 <script>
-// ========== Global Variables ==========
-let cart = [];
-let searchResultProducts = [];
-let currentPriceType = 'retail';
-let customerCar = '';
-const docNo = "{{ doc_no }}";
-const searchUrl = "{% url 'search_products_ajax' %}";
-const createSaleUrl = "{% url 'create_sale' %}";
-const csrfToken = "{{ csrf_token }}";
-let currentSaleId = null;
+// ==========================================
+// 1. GLOBAL VARIABLES (ตัวแปรสากล)
+// ==========================================
+let cart = [];                      // ⭐ ตะกร้าสินค้า (Array of Objects)
+let searchResultProducts = [];      // ⭐ ผลการค้นหา (เก็บไว้ใช้ addToCartByIndex)
+let currentPriceType = 'retail';    // ⭐ ประเภทราคาปัจจุบัน (retail/wholesale)
+let customerCar = '';               // ⭐ รุ่นรถลูกค้า (สำหรับกรองสินค้า)
+const docNo = "{{ doc_no }}";       // ⭐ เลขที่บิล (จาก Django)
+const searchUrl = "{% url 'search_products_ajax' %}";   // ⭐ URL ค้นหาสินค้า
+const createSaleUrl = "{% url 'create_sale' %}";        // ⭐ URL บันทึกบิล
+const csrfToken = "{{ csrf_token }}";                   // ⭐ CSRF Token (ป้องกัน Attack)
+let currentSaleId = null;           // ⭐ ID ของบิลปัจจุบัน (null = บิลใหม่, มีค่า = แก้ไขบิลพัก)
 
-// ========== Clock ==========
+
+
+// ==========================================
+// 2. CLOCK (นาฬิกา)
+// ==========================================
+/**
+ * อัพเดทนาฬิกาทุก 1 วินาที
+ */
 function updateClock() {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('th-TH');
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(updateClock, 1000);  
+updateClock();                   
 
-// ========== Car Filter ==========
-function updateCarFilter() { customerCar = document.getElementById('customer-car').value.trim(); }
-function clearCarFilter() { document.getElementById('customer-car').value = ''; customerCar = ''; }
 
-// ========== Search ==========
+// ⭐ เรียกทุก 1 วินาที
+// ⭐ เรียกทันทีตอนโหลด
+// ==========================================
+// 3. CAR FILTER (กรองสินค้าตามรุ่นรถ)
+// ==========================================
+/**
+ * บันทึกรุ่นรถลูกค้า (เมื่อพิมพ์เสร็จ)
+ * ใช้กรองผลการค้นหาให้เหลือแค่รุ่นที่ตรง
+ */
+function updateCarFilter() { 
+  customerCar = document.getElementById('customer-car').value.trim(); 
+}
+
+/**
+ * ล้างรุ่นรถ (กดปุ่ม X)
+ */
+function clearCarFilter() { 
+  document.getElementById('customer-car').value = ''; 
+  customerCar = ''; 
+}
+
+
+// ==========================================
+// 4. SEARCH PRODUCTS (ค้นหาสินค้า)
+// ==========================================
+/**
+ * ค้นหาสินค้า (AJAX)
+ * - เรียก API ด้วย fetch()
+ * - ส่งคำค้นหาไปที่ Backend
+ * - Backend ตอบกลับมาเป็น JSON
+ */
 async function searchProducts() {
+  // ⭐ ดึงคำค้นหาจาก input
   const q = document.getElementById('search-input').value.trim();
-  if (!q) { document.getElementById('search-results').classList.add('hidden'); return; }
+  
+  // ถ้าไม่มีคำค้นหา → ซ่อน Dropdown
+  if (!q) { 
+    document.getElementById('search-results').classList.add('hidden'); 
+    return; 
+  }
   
   try {
+    // ⭐ เรียก API (GET Request)
+    // encodeURIComponent = แปลงข้อความให้ปลอดภัยสำหรับ URL
     const response = await fetch(`${searchUrl}?q=${encodeURIComponent(q)}`);
+    
+    // ⭐ แปลง Response เป็น JSON
     const data = await response.json();
+    
+    // ⭐ แสดงผลลัพธ์
     displaySearchResults(data.products || []);
+    
   } catch (error) {
     console.error('Search error:', error);
     alert('เกิดข้อผิดพลาดในการค้นหา');
   }
 }
 
+
+/**
+ * แสดงผลการค้นหา (Dropdown)
+ * @param {Array} products - Array ของสินค้าที่ค้นเจอ
+ */
 function displaySearchResults(products) {
   const container = document.getElementById('result-container');
   const resultsDiv = document.getElementById('search-results');
+  
+  // ⭐ เก็บผลการค้นหาไว้ (สำหรับ addToCartByIndex)
   searchResultProducts = products;
   
+  // ===== กรองตามรุ่นรถ (ถ้ามี) =====
   let filtered = customerCar 
     ? products.filter(p => p.compatible_models?.toLowerCase().includes(customerCar.toLowerCase()))
     : products;
   
+  // ===== ไม่มีผล → แสดงข้อความ =====
   if (filtered.length === 0) {
     container.innerHTML = '<div class="col-span-2 text-center py-4 text-gray-500">ไม่พบสินค้า</div>';
     resultsDiv.classList.remove('hidden');
@@ -284,17 +342,27 @@ function displaySearchResults(products) {
     return;
   }
   
+  // ===== มีผล → แสดง Dropdown =====
   document.getElementById('result-count').textContent = filtered.length;
-  resultsDiv.classList.remove('hidden');
+  resultsDiv.classList.remove('hidden');  // แสดง Dropdown
   
+  // ⭐ สร้าง HTML สำหรับแต่ละสินค้า
   container.innerHTML = filtered.map(p => {
+    // คำนวณราคาตามประเภท
     const price = currentPriceType === 'wholesale' ? p.wholesale_price : p.selling_price;
+    
+    // สร้าง Badge (ซ้าย/ขวา/หน้า/หลัง)
     const badge = getBundleBadge(p);
+    
+    // ข้อความ "มีคู่"
     const pairInfo = getPairInfo(p);
+    
+    // หา Index ใน Array เดิม (ก่อนกรอง)
     const originalIndex = products.findIndex(prod => prod.id === p.id);
     
     return `
-      <button class="btn btn-outline btn-sm justify-start gap-2 h-auto py-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700" onclick="addToCartByIndex(${originalIndex})">
+      <button class="btn btn-outline btn-sm justify-start gap-2 h-auto py-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700" 
+              onclick="addToCartByIndex(${originalIndex})">
         <div class="text-left flex-1 min-w-0">
           ${badge}
           <div class="font-mono text-xs font-bold text-blue-600">${p.sku}</div>
@@ -310,31 +378,40 @@ function displaySearchResults(products) {
   }).join('');
 }
 
-// ========== Bundle Badge & Pair Info ==========
+
+// ==========================================
+// 5. BADGE & PAIR INFO (ป้าย + ข้อมูลคู่)
+// ==========================================
+/**
+ * สร้าง Badge สำหรับสินค้าชุด/คู่
+ * @param {Object} p - สินค้า
+ * @returns {String} HTML ของ Badge
+ */
 function getBundleBadge(p) {
+  // ถ้าไม่มี bundle_group หรือเป็น SAME → ไม่มี Badge
   if (!p.bundle_group || p.bundle_type === 'SAME') return '';
   
   let [color, text, icon] = ['', '', ''];
   
-  // กรณี ซ้าย-ขวา (L-R)
+  // ===== กรณี ซ้าย-ขวา (L-R) =====
   if (p.bundle_type === 'L-R') {
     if (p.sku.includes('-L') || p.name.includes('ซ้าย')) {
         [color, text, icon] = ['badge-info', 'ซ้าย', '←'];
     } else if (p.sku.includes('-R') || p.name.includes('ขวา')) {
         [color, text, icon] = ['badge-error', 'ขวา', '→'];
     } else {
-        // ถ้าไม่ระบุข้าง = เป็นสินค้า "ชุด/คู่"
-        return '<span class="badge badge-primary badge-xs text-white mr-1"> ชุด</span>';
+        // ⭐ ถ้าไม่ระบุข้าง = เป็นสินค้า "ชุด/คู่"
+        return '<span class="badge badge-primary badge-xs text-white mr-1">🎁 ชุด</span>';
     }
   } 
-  // กรณี หน้า-หลัง (F-R)
+  // ===== กรณี หน้า-หลัง (F-R) =====
   else if (p.bundle_type === 'F-R') {
     if (p.sku.includes('-F') || p.name.includes('หน้า')) {
         [color, text, icon] = ['badge-warning', 'หน้า', '↑'];
     } else if (p.sku.includes('-R') || p.name.includes('หลัง')) {
         [color, text, icon] = ['badge-secondary', 'หลัง', '↓'];
     } else {
-        return '<span class="badge badge-primary badge-xs text-white mr-1"> ชุด</span>';
+        return '<span class="badge badge-primary badge-xs text-white mr-1">🎁 ชุด</span>';
     }
   }
   
@@ -342,85 +419,183 @@ function getBundleBadge(p) {
   return `<span class="badge ${color} badge-xs text-white mr-1">${icon} ${text}</span>`;
 }
 
+
+/**
+ * สร้างข้อความ "มีคู่พร้อมขาย"
+ * @param {Object} p - สินค้า
+ * @returns {String} HTML
+ */
 function getPairInfo(p) {
   if (!p.has_pair) return '';
   const text = p.bundle_type === 'L-R' ? 'คู่' : 'ชุด';
   return `<div class="text-[10px] text-green-600 mt-0.5">✓ มี${text}พร้อมขาย</div>`;
 }
 
-// ========== Cart Management ==========
-function addToCartByIndex(idx) { if (searchResultProducts[idx]) addToCart(searchResultProducts[idx]); }
 
+// ==========================================
+// 6. CART MANAGEMENT (จัดการตะกร้า)
+// ==========================================
+/**
+ * เพิ่มสินค้าจากผลการค้นหา (ใช้ Index)
+ * @param {Number} idx - Index ใน searchResultProducts
+ */
+function addToCartByIndex(idx) { 
+  if (searchResultProducts[idx]) addToCart(searchResultProducts[idx]); 
+}
+
+
+/**
+ * เพิ่มสินค้าลงตะกร้า (หัวใจหลัก!)
+ * @param {Object} p - สินค้า
+ */
 function addToCart(p) {
-  if (!p.has_stock) { alert(`${p.name} หมดสต็อก`); return; }
+  // ===== 1. เช็คสต็อก =====
+  if (!p.has_stock) { 
+    alert(`${p.name} หมดสต็อก`); 
+    return; 
+  }
   
+  // ===== 2. คำนวณราคา =====
   const price = currentPriceType === 'wholesale' ? p.wholesale_price : p.selling_price;
+  
+  // ===== 3. เช็คว่ามีในตะกร้าแล้วไหม =====
   const existing = cart.find(item => item.id === p.id);
   
   if (existing) {
+    // ⭐ มีแล้ว → เพิ่มจำนวน
     if (existing.quantity + 1 > p.stock_units) {
       alert(`สต็อกเหลือ ${parseFloat(p.stock_units).toFixed(0)} ${p.unit}`);
       return;
     }
     existing.quantity++;
   } else {
+    // ⭐ ยังไม่มี → เพิ่มรายการใหม่
     cart.push({
-      id: p.id, sku: p.sku, name: p.name, unit: p.unit,
-      price: parseFloat(price), selling_price: parseFloat(p.selling_price),
-      wholesale_price: parseFloat(p.wholesale_price), stock_units: parseFloat(p.stock_units),
-      quantity: 1, original_price: parseFloat(price),
-      bundle_type: p.bundle_type, bundle_group: p.bundle_group, has_pair: p.has_pair
+      id: p.id, 
+      sku: p.sku, 
+      name: p.name, 
+      unit: p.unit,
+      price: parseFloat(price), 
+      selling_price: parseFloat(p.selling_price),
+      wholesale_price: parseFloat(p.wholesale_price), 
+      stock_units: parseFloat(p.stock_units),
+      quantity: 1, 
+      original_price: parseFloat(price),
+      bundle_type: p.bundle_type, 
+      bundle_group: p.bundle_group, 
+      has_pair: p.has_pair
     });
   }
   
+  // ===== 4. Render ตะกร้า =====
   renderCart();
   
-  // Clear search
+  // ===== 5. Clear Search =====
   const searchInput = document.getElementById('search-input');
   if (searchInput) {
-      searchInput.value = '';
-      searchInput.focus();
+      searchInput.value = '';  // ล้างช่องค้นหา
+      searchInput.focus();     // Focus กลับไปที่ช่องค้นหา
   }
-  document.getElementById('search-results').classList.add('hidden');
+  document.getElementById('search-results').classList.add('hidden');  // ซ่อน Dropdown
   
-  // เช็คคู่และรวม
+  // ===== 6. เช็คคู่และรวม (หน่วง 300ms) =====
   setTimeout(() => checkPairInCart(), 300);
   
-  // ⭐ แนะนำคู่ (ถ้ายังไม่มีในตะกร้า)
+  // ===== 7. แนะนำคู่ (ถ้ายังไม่มีในตะกร้า) =====
   if (p.bundle_group && p.has_pair) suggestPairProduct(p);
 }
 
+
+/**
+ * เปลี่ยนจำนวน (+ หรือ -)
+ * @param {Number} idx - Index ในตะกร้า
+ * @param {Number} delta - +1 หรือ -1
+ */
 function changeQty(idx, delta) {
   const item = cart[idx];
   const newQty = item.quantity + delta;
+  
+  // ⭐ ป้องกันติดลบ
   if (newQty < 1) return;
-  if (newQty > item.stock_units) { alert(`สต็อกเหลือ ${item.stock_units.toFixed(0)}`); return; }
+  
+  // ⭐ เช็คสต็อก
+  if (newQty > item.stock_units) { 
+    alert(`สต็อกเหลือ ${item.stock_units.toFixed(0)}`); 
+    return; 
+  }
+  
   item.quantity = newQty;
   renderCart();
 }
 
+
+/**
+ * ตั้งจำนวนเอง (พิมพ์โดยตรง)
+ * @param {Number} idx - Index ในตะกร้า
+ * @param {String} val - ค่าที่พิมพ์
+ */
 function setQty(idx, val) {
   const item = cart[idx];
   const qty = parseFloat(val);
-  if (isNaN(qty) || qty < 1) item.quantity = 1;
-  else if (qty > item.stock_units) { alert(`สต็อกเหลือ ${item.stock_units.toFixed(0)}`); item.quantity = item.stock_units; }
-  else item.quantity = qty;
+  
+  // ⭐ Validate
+  if (isNaN(qty) || qty < 1) {
+    item.quantity = 1;
+  } else if (qty > item.stock_units) { 
+    alert(`สต็อกเหลือ ${item.stock_units.toFixed(0)}`); 
+    item.quantity = item.stock_units; 
+  } else {
+    item.quantity = qty;
+  }
+  
   renderCart();
 }
 
+
+/**
+ * ลบรายการออกจากตะกร้า
+ * @param {Number} idx - Index ในตะกร้า
+ */
 function removeItem(idx) {
-  if (confirm(`ลบ ${cart[idx].name}?`)) { cart.splice(idx, 1); renderCart(); }
+  if (confirm(`ลบ ${cart[idx].name}?`)) { 
+    cart.splice(idx, 1);  // ⭐ ลบออกจาก Array
+    renderCart(); 
+  }
 }
 
+
+/**
+ * ล้างตะกร้าทั้งหมด
+ */
 function clearCart() {
-  if (cart.length > 0 && confirm('ล้างรายการ?')) { currentSaleId = null; cart = []; renderCart(); }
+  if (cart.length > 0 && confirm('ล้างรายการ?')) { 
+    currentSaleId = null;  // ⭐ Reset Sale ID
+    cart = [];             // ⭐ ล้าง Array
+    renderCart(); 
+  }
 }
 
+
+/**
+ * แสดงตะกร้า (Render HTML)
+ * ⭐ ฟังก์ชันสำคัญ! เรียกทุกครั้งที่ตะกร้าเปลี่ยน
+ */
 function renderCart() {
   const tbody = document.getElementById('cart-items');
+  
+  // ===== กรณีไม่มีสินค้า =====
   if (cart.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-300"><div class="text-4xl opacity-30 mb-2">🛒</div><div>ยังไม่มีสินค้า</div></td></tr>';
-  } else {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-12 text-gray-300">
+          <div class="text-4xl opacity-30 mb-2">🛒</div>
+          <div>ยังไม่มีสินค้า</div>
+        </td>
+      </tr>
+    `;
+  } 
+  // ===== มีสินค้า → สร้างแถว =====
+  else {
     tbody.innerHTML = cart.map((item, idx) => `
       <tr class="hover:bg-gray-50">
         <td class="text-center text-gray-400 text-xs">${idx + 1}</td>
@@ -431,50 +606,98 @@ function renderCart() {
         </td>
         <td>
           <div class="join flex justify-center">
-            <button class="btn btn-xs join-item btn-ghost border border-gray-200" onclick="changeQty(${idx}, -1)">-</button>
-            <input type="number" class="input input-xs join-item w-12 text-center bg-white border-t border-b border-gray-200" 
-                   value="${item.quantity}" onchange="setQty(${idx}, this.value)">
-            <button class="btn btn-xs join-item btn-ghost border border-gray-200" onclick="changeQty(${idx}, 1)">+</button>
+            <button class="btn btn-xs join-item btn-ghost border border-gray-200" 
+                    onclick="changeQty(${idx}, -1)">-</button>
+            <input type="number" 
+                   class="input input-xs join-item w-12 text-center bg-white border-t border-b border-gray-200" 
+                   value="${item.quantity}" 
+                   onchange="setQty(${idx}, this.value)">
+            <button class="btn btn-xs join-item btn-ghost border border-gray-200" 
+                    onclick="changeQty(${idx}, 1)">+</button>
           </div>
         </td>
         <td class="text-right text-gray-600 text-sm">${item.price.toFixed(2)}</td>
         <td class="text-right font-bold text-gray-800 text-sm">${(item.quantity * item.price).toFixed(2)}</td>
-        <td class="text-center"><button class="btn btn-ghost btn-xs text-gray-400 hover:text-red-500" onclick="removeItem(${idx})">✕</button></td>
+        <td class="text-center">
+          <button class="btn btn-ghost btn-xs text-gray-400 hover:text-red-500" 
+                  onclick="removeItem(${idx})">✕</button>
+        </td>
       </tr>
     `).join('');
   }
+  
+  // ⭐ อัพเดทสรุปยอด
   updateSummary();
 }
-
+/**
+ * อัพเดทสรุปยอด (ขวาบน)
+ * - จำนวนรายการ
+ * - จำนวนชิ้น
+ * - ยอดรวม
+ * - ส่วนลด
+ * - ยอดชำระ
+ */
 function updateSummary() {
+  // ⭐ นับจำนวนรายการ
   const itemCount = cart.length;
+  
+  // ⭐ นับจำนวนชิ้นรวม
   const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+  
+  // ⭐ คำนวณยอดรวม
   const subtotal = cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  
+  // ⭐ ดึงส่วนลด
   const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+  
+  // ⭐ คำนวณยอดชำระ
   const grandTotal = subtotal - discount;
   
+  // ⭐ แสดงผล
   document.getElementById('item-count').textContent = `${itemCount} รายการ`;
   document.getElementById('total-qty').textContent = `${totalQty.toFixed(0)} ชิ้น`;
   document.getElementById('subtotal').textContent = `${subtotal.toFixed(2)} ฿`;
   document.getElementById('grand-total').textContent = `${grandTotal.toFixed(2)} ฿`;
 }
 
-// ========== Pair Suggestion ==========
+
+// ==========================================
+// 7. PAIR SUGGESTION (แนะนำคู่)
+// ==========================================
+/**
+ * แนะนำสินค้าคู่ (เรียก API)
+ * @param {Object} p - สินค้าที่เพิ่งเพิ่ม
+ */
 async function suggestPairProduct(p) {
   try {
+    // ⭐ เรียก API หาสินค้าคู่
     const res = await fetch(`/api/get-pair-products/?product_id=${p.id}`);
     const data = await res.json();
+    
+    // ⭐ ถ้ามีคู่ → กรองเฉพาะที่ยังไม่มีในตะกร้า
     if (data.success && data.has_pair && data.pairs.length > 0) {
         const pairNotInCart = data.pairs.filter(pair => !cart.some(c => c.id === pair.id));
+        
+        // ⭐ ถ้ามีคู่ที่ยังไม่มี → แสดง Modal
         if (pairNotInCart.length > 0) {
             showPairModal(p, pairNotInCart);
         }
     }
-  } catch (e) { console.error('Pair error:', e); }
+  } catch (e) { 
+    console.error('Pair error:', e); 
+  }
 }
 
+
+/**
+ * แสดง Modal แนะนำคู่
+ * @param {Object} current - สินค้าปัจจุบัน
+ * @param {Array} pairs - คู่ที่ยังไม่มีในตะกร้า
+ */
 function showPairModal(current, pairs) {
   const text = current.bundle_type === 'L-R' ? 'คู่' : 'ชุด';
+  
+  // ⭐ สร้าง HTML Modal
   const html = `
     <div id="pair-modal" class="modal modal-open">
       <div class="modal-box bg-white">
@@ -484,133 +707,234 @@ function showPairModal(current, pairs) {
         </div>
         ${pairs.map(pair => `
           <div class="flex justify-between p-3 bg-gray-50 border border-gray-100 rounded mb-2">
-            <div><div class="font-semibold text-gray-700 text-sm">${pair.name}</div><div class="text-xs text-gray-500">สต็อก: ${pair.quantity}</div></div>
+            <div>
+              <div class="font-semibold text-gray-700 text-sm">${pair.name}</div>
+              <div class="text-xs text-gray-500">สต็อก: ${pair.quantity}</div>
+            </div>
             <div class="text-right">
               <div class="font-bold text-gray-800 text-sm">฿${pair.selling_price}</div>
-              <button onclick="addPairToCart(${pair.id}); closePairModal();" class="btn btn-sm btn-primary mt-1 text-white">➕</button>
+              <button onclick="addPairToCart(${pair.id}); closePairModal();" 
+                      class="btn btn-sm btn-primary mt-1 text-white">➕</button>
             </div>
           </div>
         `).join('')}
-        <div class="modal-action"><button onclick="closePairModal()" class="btn btn-ghost text-gray-500">ไม่เอา</button></div>
+        <div class="modal-action">
+          <button onclick="closePairModal()" class="btn btn-ghost text-gray-500">ไม่เอา</button>
+        </div>
       </div>
     </div>
   `;
+  
+  // ⭐ ลบ Modal เก่า (ถ้ามี)
   const existing = document.getElementById('pair-modal');
   if (existing) existing.remove();
+  
+  // ⭐ เพิ่ม Modal ใหม่
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+
+/**
+ * ปิด Modal แนะนำคู่
+ */
 function closePairModal() {
   const modal = document.getElementById('pair-modal');
   if (modal) modal.remove();
 }
 
+
+/**
+ * เพิ่มคู่ลงตะกร้า
+ * @param {Number} productId - ID สินค้าคู่
+ */
 async function addPairToCart(productId) {
   await fetchProductAndAdd(productId);
 }
 
-// ========== Payment & Save ==========
+
+// ==========================================
+// 8. PAYMENT & SAVE (ชำระเงิน + บันทึก)
+// ==========================================
+/**
+ * เปิด Modal ชำระเงิน (ตามวิธีที่เลือก)
+ */
 function openPaymentModal() {
-  if (cart.length === 0) { alert('กรุณาเพิ่มสินค้า'); return; }
+  // ⭐ เช็คว่ามีสินค้าหรือไม่
+  if (cart.length === 0) { 
+    alert('กรุณาเพิ่มสินค้า'); 
+    return; 
+  }
+  
+  // ⭐ ดึงวิธีชำระ
   const method = document.getElementById('payment-method-select').value;
+  
+  // ⭐ เปิด Modal ตามวิธี
   if (method === 'cash') openCashModal();
   else if (method === 'qr') openQRModal();
   else if (method === 'transfer') openTransferModal();
 }
-//การบันทึกขายพร้อมชำระเงิน
+
+
+/**
+ * บันทึกบิลขายพร้อมชำระเงิน
+ * ⭐ ฟังก์ชันสำคัญ! เรียกจาก Modal ชำระเงิน
+ */
 async function saveSaleWithPayment() {
+  // ===== 1. เตรียมข้อมูล =====
   const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-  const paymentData = window.paymentData || {};
+  const paymentData = window.paymentData || {};  // ⭐ ข้อมูลจาก Modal ชำระเงิน
   
+  // ===== 2. สร้าง JSON สำหรับส่ง Backend =====
   const data = {
-      sale_id: currentSaleId, doc_no: docNo, price_type: currentPriceType,
-      payment_method: paymentData.method || 'cash', payment_received: paymentData.received || 0,
-      discount_amount: discount, auto_post: true, status: 'POSTED',
+      sale_id: currentSaleId,          // ⭐ null = บิลใหม่, มีค่า = แก้ไขบิลพัก
+      doc_no: docNo,                   // ⭐ เลขที่บิล
+      price_type: currentPriceType,    // ⭐ retail/wholesale
+      payment_method: paymentData.method || 'cash',
+      payment_received: paymentData.received || 0,
+      discount_amount: discount,
+      auto_post: true,                 // ⭐ ตัดสต็อกทันที
+      status: 'POSTED',                // ⭐ สถานะขายแล้ว
+      
+      // ⭐ รายการสินค้า
       items: cart.map(item => ({ 
           product_id: item.id, 
           quantity: item.quantity, 
           custom_price: item.price,
           unit_type: item.unit_type || 'ชิ้น',
-          bundle_items: item.bundle_items || null
+          bundle_items: item.bundle_items || null  // ⭐ สำหรับสินค้าคู่
       }))
     };
   
   try {
-    const res = await fetch(createSaleUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    // ===== 3. ส่งข้อมูลไป Backend (POST) =====
+    const res = await fetch(createSaleUrl, {method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken  // ⭐ ป้องกัน CSRF Attack
+      },
       body: JSON.stringify(data)
     });
+    
+    // ===== 4. รับผลลัพธ์ =====
     const result = await res.json();
     
+    // ===== 5. เช็คผลลัพธ์ =====
     if (result.success) {
-      currentSaleId = null;
+      // ⭐ สำเร็จ
+      currentSaleId = null;  // Reset
       const change = result.payment_change || 0;
-      alert(`✅ บันทึกสำเร็จ!\n\nเลขที่: ${result.doc_no}\nยอด: ${result.grand_total.toFixed(2)} ฿` +
-        (paymentData.method === 'cash' ? `\nรับเงิน: ${paymentData.received.toFixed(2)} ฿\nทอน: ${change.toFixed(2)} ฿` : ''));
+      
+      // แสดงข้อความสำเร็จ
+      alert(
+        `✅ บันทึกสำเร็จ!\n\n` +
+        `เลขที่: ${result.doc_no}\n` +
+        `ยอด: ${result.grand_total.toFixed(2)} ฿` +
+        (paymentData.method === 'cash' ? `\nรับเงิน: ${paymentData.received.toFixed(2)} ฿\nทอน: ${change.toFixed(2)} ฿` : '')
+      );
+      
+      // ⭐ ไปหน้าพิมพ์ใบเสร็จ
       window.location.href = result.redirect_url;
+      
     } else {
+      // ❌ ไม่สำเร็จ
       alert(`❌ เกิดข้อผิดพลาด:\n${result.error}`);
     }
+    
   } catch (error) {
     console.error('Save error:', error);
     alert('เกิดข้อผิดพลาด: ' + error.message);
   }
 }
 
-// ========== Hold Bill ==========
+
+// ==========================================
+// 9. HOLD BILL (พักบิล)
+// ==========================================
+/**
+ * เปิด Modal พักบิล
+ */
 function openHoldModal() {
-  if (cart.length === 0) { alert('กรุณาเพิ่มสินค้า'); return; }
+  // ⭐ เช็คว่ามีสินค้าหรือไม่
+  if (cart.length === 0) { 
+    alert('กรุณาเพิ่มสินค้า'); 
+    return; 
+  }
+  
+  // ⭐ เปิด Modal
   document.getElementById('hold_modal').showModal();
+  
+  // ⭐ Focus ช่องกรอกหมายเหตุ (หน่วง 100ms)
   setTimeout(() => document.getElementById('hold_note').focus(), 100);
 }
-
+/**
+ * ยืนยันพักบิล (กดปุ่มใน Modal)
+ */
 async function confirmHoldBill() {
+  // ===== 1. ดึงข้อมูล =====
   const note = document.getElementById('hold_note').value.trim();
   const discount = parseFloat(document.getElementById('discount-input').value) || 0;
   
+  // ===== 2. สร้าง JSON =====
   const data = {
-    doc_no: docNo, remark: note, discount_amount: discount, price_type: currentPriceType,
-    auto_post: false, status: 'HOLD',
-    items: cart.map(item => ({ product_id: item.id, quantity: item.quantity, custom_price: item.price }))
+    doc_no: docNo, 
+    remark: note,                // ⭐ หมายเหตุ
+    discount_amount: discount, 
+    price_type: currentPriceType,
+    auto_post: false,            // ⭐ ไม่ตัดสต็อก
+    status: 'HOLD',              // ⭐ สถานะพักบิล
+    
+    items: cart.map(item => ({ 
+      product_id: item.id, 
+      quantity: item.quantity, 
+      custom_price: item.price 
+    }))
   };
-  
   try {
+    // ===== 3. ส่งไป Backend =====
     const res = await fetch(createSaleUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      method: 'POST', 
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-CSRFToken': csrfToken 
+      },
       body: JSON.stringify(data)
     });
     const result = await res.json();
-    
+    // ===== 4. เช็คผลลัพธ์ =====
     if (result.success) {
       document.getElementById('hold_modal').close();
-      alert(`✅ พักบิลเรียบร้อย!\n${result.doc_no}`);
+      alert(`✅ พักบิลเรียบร้อย!\n${result.doc_no}`); 
+      
+      // ⭐ Reload หน้า (เพื่อเคลียร์ตะกร้า + สร้างเลขบิลใหม่)
       window.location.reload();
     } else {
       alert(`❌ เกิดข้อผิดพลาด: ${result.error}`);
-    }
+    } 
   } catch (error) {
     console.error('Hold error:', error);
     alert('เกิดข้อผิดพลาด');
   }
 }
-
+/**
+ * โหลดรายการพักบิล (เปิด Modal)
+ */
 async function loadHeldBills() {
   const modal = document.getElementById('held_bills_modal');
   const tbody = document.getElementById('held-bills-list');
+  // ⭐ เปิด Modal
   modal.showModal();
+  // ⭐ แสดง Loading
   tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8"><span class="loading loading-spinner text-primary"></span></td></tr>';
-
   try {
+    // ===== เรียก API =====
     const res = await fetch('/sales/api/held-bills/');
     const data = await res.json();
-
     if (data.success) {
+      // ⭐ อัพเดท Badge (จำนวนบิลพัก)
       updateHeldBadge(data.bills.length);
+      // ⭐ ถ้าไม่มีบิล
       if (data.bills.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">ไม่มีรายการ</td></tr>';
         return;
       }
-
+      // ⭐ แสดงรายการ
       tbody.innerHTML = data.bills.map(bill => `
         <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
           <td class="font-mono text-xs text-gray-500 pl-4">${bill.date} น.</td>
@@ -622,12 +946,16 @@ async function loadHeldBills() {
           </td>
           <td class="text-center">
             <div class="join">
-              <button onclick="resumeBill(${bill.id})" class="btn btn-xs btn-success join-item text-white" title="ทำรายการต่อ">▶</button>
-              <button onclick="discardBill(${bill.id})" class="btn btn-xs btn-error join-item text-white" title="ลบ">🗑</button>
+              <button onclick="resumeBill(${bill.id})" 
+                      class="btn btn-xs btn-success join-item text-white" 
+                      title="ทำรายการต่อ">▶</button>
+              <button onclick="discardBill(${bill.id})" 
+                      class="btn btn-xs btn-error join-item text-white" 
+                      title="ลบ">🗑</button>
             </div>
           </td>
         </tr>
-      `).join('');
+      `).join(''); 
     } else {
       tbody.innerHTML = `<tr><td colspan="5" class="text-center text-error">Error: ${data.error}</td></tr>`;
     }
@@ -636,105 +964,195 @@ async function loadHeldBills() {
     tbody.innerHTML = '<tr><td colspan="5" class="text-center text-error">เกิดข้อผิดพลาด</td></tr>';
   }
 }
-
+/**
+ * อัพเดท Badge จำนวนบิลพัก
+ * @param {Number} count - จำนวนบิล
+ */
 function updateHeldBadge(count) {
   const badge = document.getElementById('held-count-badge');
   badge.textContent = count;
-  badge.classList.toggle('hidden', count === 0);
+  badge.classList.toggle('hidden', count === 0);  // ⭐ ซ่อนถ้า = 0
 }
-
+/**
+ * ทำรายการต่อ (Resume Bill)
+ * @param {Number} saleId - ID ของบิลพัก
+ */
 async function resumeBill(saleId) {
+  // ⭐ เช็คว่ามีสินค้าในตะกร้าหรือไม่
   if (cart.length > 0 && !confirm('รายการปัจจุบันจะถูกล้าง?')) return;
-
   try {
+    // ===== เรียก API ดึงรายละเอียดบิล =====
     const res = await fetch(`/sales/api/resume/${saleId}/`);
     const data = await res.json();
-
     if (data.success) {
+      // ⭐ Set Sale ID (บอกว่ากำลังแก้ไขบิลนี้)
       currentSaleId = saleId;
+      // ⭐ โหลดรายการสินค้าลงตะกร้า
       cart = data.sale.items.map(item => ({
-        id: item.id, sku: item.sku, name: item.name, unit: item.unit,
-        price: item.price, selling_price: item.selling_price, wholesale_price: item.wholesale_price,
-        stock_units: item.stock_units, quantity: item.quantity, original_price: item.original_price
+        id: item.id, 
+        sku: item.sku, 
+        name: item.name, 
+        unit: item.unit,
+        price: item.price, 
+        selling_price: item.selling_price, 
+        wholesale_price: item.wholesale_price,
+        stock_units: item.stock_units, 
+        quantity: item.quantity, 
+        original_price: item.original_price
       }));
-
+      // ⭐ โหลดส่วนลด
       document.getElementById('discount-input').value = data.sale.discount;
+      // ⭐ เปลี่ยนเลขบิล (แสดงบนหน้าจอ)
       const docNoEl = document.getElementById('doc-no');
-      if (docNoEl) docNoEl.textContent = data.sale.doc_no;
-
+      if (docNoEl) docNoEl.textContent = data.sale.doc_no
+      // ⭐ Render
       renderCart();
-      document.getElementById('held_bills_modal').close();
+      // ⭐ ปิด Modal
+      document.getElementById('held_bills_modal').close(); 
     } else {
       alert('ไม่สามารถดึงรายการได้: ' + data.error);
-    }
+    } 
   } catch (error) {
     console.error('Resume error:', error);
     alert('เกิดข้อผิดพลาด');
   }
 }
 
+
+/**
+ * ทิ้งบิลพัก (Discard)
+ * @param {Number} saleId - ID ของบิลพัก
+ */
 async function discardBill(saleId) {
   if (!confirm('ยืนยันลบบิลพัก?')) return;
 
   try {
+    // ===== ส่ง Request ลบ =====
     const res = await fetch(`/sales/api/discard/${saleId}/`, {
-      method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+      method: 'POST', 
+      headers: { 
+        'X-CSRFToken': csrfToken, 
+        'Content-Type': 'application/json' 
+      }
     });
+    
     const data = await res.json();
-    if (data.success) loadHeldBills();
-    else alert('ลบไม่สำเร็จ: ' + data.error);
+    
+    if (data.success) {
+      // ⭐ โหลดรายการใหม่
+      loadHeldBills();
+    } else {
+      alert('ลบไม่สำเร็จ: ' + data.error);
+    }
+    
   } catch (error) {
     console.error('Discard error:', error);
     alert('เกิดข้อผิดพลาด');
   }
 }
 
-// ========== Event Listeners ==========
+
+// ==========================================
+// 10. EVENT LISTENERS (จับ Event)
+// ==========================================
+/**
+ * เมื่อหน้าเว็บโหลดเสร็จ
+ */
 document.addEventListener('DOMContentLoaded', function() {
+  // ===== เช็ค URL Parameters (auto_add) =====
+  // ⭐ ถ้ามี ?product_id=X&auto_add=1 → เพิ่มสินค้าอัตโนมัติ
   const urlParams = new URLSearchParams(window.location.search);
   const productId = urlParams.get('product_id');
   const autoAdd = urlParams.get('auto_add');
-  if (productId && autoAdd === '1') fetchProductAndAdd(productId);
   
-  document.getElementById('search-input').addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); searchProducts(); }});
+  if (productId && autoAdd === '1') {
+    fetchProductAndAdd(productId);
+  }
+  
+  // ===== จับ Event ช่องค้นหา (กด Enter) =====
+  document.getElementById('search-input').addEventListener('keypress', e => { 
+    if (e.key === 'Enter') { 
+      e.preventDefault();  // ⭐ ป้องกัน Submit Form
+      searchProducts(); 
+    }
+  });
+  
+  // ===== จับ Event ปุ่มค้นหา =====
   document.getElementById('search-btn').addEventListener('click', searchProducts);
+  
+  // ===== จับ Event ปุ่มชำระเงิน =====
   document.getElementById('checkout-btn').addEventListener('click', openPaymentModal);
+  
+  // ===== จับ Event ปุ่มล้าง =====
   document.getElementById('clear-cart-btn').addEventListener('click', clearCart);
   
+  // ===== จับ Event เปลี่ยนประเภทราคา =====
   document.getElementById('price-type-select').addEventListener('change', function() {
     const newType = this.value;
+    
+    // ⭐ ถ้ามีสินค้าในตะกร้า → ถามก่อน
     if (cart.length > 0 && confirm('เปลี่ยนประเภทราคา?')) {
       currentPriceType = newType;
+      
+      // ⭐ อัพเดทราคาสินค้าทั้งหมด
       cart.forEach(item => {
         if (item.price === item.original_price) {
           const newPrice = newType === 'wholesale' ? item.wholesale_price : item.selling_price;
           item.price = item.original_price = newPrice;
         }
       });
+      
       renderCart();
+      
     } else if (cart.length === 0) {
+      // ⭐ ถ้าไม่มีสินค้า → เปลี่ยนได้เลย
       currentPriceType = newType;
+      
     } else {
+      // ⭐ ถ้ายกเลิก → คืนค่าเดิม
       this.value = currentPriceType;
     }
   });
   
+  // ===== Render ตะกร้า (ครั้งแรก) =====
   renderCart();
+  
+  // ===== โหลดรายการพักบิล (หน่วง 500ms) =====
   setTimeout(loadHeldBills, 500);
 });
-// ========== Auto Add from URL ==========
+
+
+// ==========================================
+// 11. AUTO ADD FROM URL (เพิ่มอัตโนมัติจาก URL)
+// ==========================================
+/**
+ * ดึงข้อมูลสินค้าและเพิ่มลงตะกร้า
+ * @param {Number} productId - ID สินค้า
+ */
 async function fetchProductAndAdd(productId) {
   try {
+    // ===== เรียก API ดึงข้อมูลสินค้า =====
     const res = await fetch(`/api/products/${productId}/`);
     const data = await res.json();
+    
+    // ===== เช็คผลลัพธ์ =====
     if (!data.success) throw new Error(data.error || 'ไม่พบสินค้า');
-    if (!data.has_stock) { alert(`❌ "${data.name}" หมดสต็อก`); return; }
+    
+    // ⭐ เช็คสต็อก
+    if (!data.has_stock) { 
+      alert(`❌ "${data.name}" หมดสต็อก`); 
+      return; 
+    }
+    
+    // ===== เพิ่มลงตะกร้า =====
     addToCart(data);
+    
   } catch (error) {
     console.error('Auto add error:', error);
     alert('❌ เกิดข้อผิดพลาด: ' + error.message);
+    
   } finally {
-    // Clean URL params if exists
+    // ===== Clean URL (ลบ Parameters) =====
     const url = new URL(window.location);
     if (url.searchParams.has('product_id')) {
         url.searchParams.delete('product_id');
@@ -743,33 +1161,48 @@ async function fetchProductAndAdd(productId) {
     }
   }
 }
+
+
+// ==========================================
+// 12. CHECK PAIR IN CART (เช็คคู่ในตะกร้า)
+// ==========================================
+/**
+ * เช็คว่ามีสินค้าครบคู่ในตะกร้าหรือไม่
+ * ถ้ามี → แสดง Popup ถามว่าต้องการรวมไหม
+ */
 function checkPairInCart() {
     const groups = {};
-    
-    // จัดกลุ่มตาม bundle_group
+
+    // ===== จัดกลุ่มตาม bundle_group (ไม่เช็ค bundle_type แล้ว) =====
     cart.forEach((item, index) => {
-        if (item.bundle_group && item.bundle_type === 'L-R') {
+        if (item.bundle_group) {
             if (!groups[item.bundle_group]) {
                 groups[item.bundle_group] = [];
             }
             groups[item.bundle_group].push({item, index});
         }
     });
-    
-    // เช็คว่ากลุ่มไหนมีครบ L+R
+
+    // ===== เช็คว่ากลุ่มไหนมีครบคู่ (2 ชิ้น) =====
     for (const [group, items] of Object.entries(groups)) {
         if (items.length === 2) {
-            // มีครบคู่แล้ว → แสดง Popup
-            showBundlePopup(items);
+            // ⭐ มีครบคู่แล้ว → รวมอัตโนมัติเลย
+            mergeToPair(items[0].index, items[1].index);
         }
     }
 }
-// ⭐ Popup ถามรวมคู่
+
+
+/**
+ * แสดง Popup ถามรวมคู่
+ * @param {Array} items - Array ของสินค้า 2 ตัว (L+R)
+ */
 function showBundlePopup(items) {
     const item1 = items[0].item;
     const item2 = items[1].item;
     const totalPrice = item1.price + item2.price;
     
+    // ===== สร้าง HTML Modal =====
     const html = `
         <div id="bundle-popup" class="modal modal-open">
             <div class="modal-box bg-white">
@@ -796,7 +1229,8 @@ function showBundlePopup(items) {
                 </div>
                 
                 <div class="modal-action">
-                    <button onclick="closeBundlePopup()" class="btn btn-ghost text-gray-500">ไม่รวม</button>
+                    <button onclick="closeBundlePopup()" 
+                            class="btn btn-ghost text-gray-500">ไม่รวม</button>
                     <button onclick="mergeToPair(${items[0].index}, ${items[1].index})" 
                             class="btn btn-primary text-white">รวมเป็นคู่</button>
                 </div>
@@ -804,55 +1238,68 @@ function showBundlePopup(items) {
         </div>
     `;
     
+    // ⭐ เพิ่ม Modal ลงหน้าเว็บ
     document.body.insertAdjacentHTML('beforeend', html);
 }
 
+
+/**
+ * ปิด Popup รวมคู่
+ */
 function closeBundlePopup() {
     const popup = document.getElementById('bundle-popup');
     if (popup) popup.remove();
 }
-// ⭐ รวม 2 รายการเป็นคู่
+
+
+/**
+ * รวม 2 รายการเป็นคู่
+ * @param {Number} index1 - Index ตัวที่ 1
+ * @param {Number} index2 - Index ตัวที่ 2
+ */
 function mergeToPair(index1, index2) {
     const item1 = cart[index1];
     const item2 = cart[index2];
     
-    // คำนวณราคาเตรียมไว้ก่อน
+    // ===== คำนวณราคา =====
     const totalSelling = item1.selling_price + item2.selling_price;
     const totalWholesale = item1.wholesale_price + item2.wholesale_price;
     const minStock = Math.min(item1.stock_units, item2.stock_units);
     
-    // สร้างรายการใหม่ (คู่)
+    // ===== สร้างรายการใหม่ (คู่) =====
     const bundleItem = {
         id: item1.id, 
         sku: item1.bundle_group,
         name: item1.name.replace(/\(ซ้าย\)|\(ขวา\)/g, '').trim(),
         
-        // ✅ 1. ใส่ราคาปัจจุบัน
+        // ✅ ราคาปัจจุบัน
         price: item1.price + item2.price,
         original_price: item1.original_price + item2.original_price,
         
-        // ✅ 2. ใส่ฐานราคาขายปลีก/ส่ง ให้ครบ (กันราคาหาย)
+        // ✅ ฐานราคา (สำหรับเปลี่ยนประเภท)
         selling_price: totalSelling,
         wholesale_price: totalWholesale,
         
         quantity: 1,
-        unit_type: 'คู่',
-        bundle_items: [item1.id, item2.id],
+        unit_type: 'คู่',                    // ⭐ บอกว่าเป็นคู่
+        bundle_items: [item1.id, item2.id],  // ⭐ เก็บ ID ลูกไว้
         
-        // ✅ 3. ใส่สต็อก
+        // ✅ สต็อก (เอาน้อยสุด)
         stock_units: minStock,
         has_stock: minStock > 0
     };
     
-    // ลบ 2 รายการเดิม
+    // ===== ลบ 2 รายการเดิม (เรียงจากมากไปน้อย) =====
     const toRemove = [index1, index2].sort((a,b) => b-a);
     toRemove.forEach(i => cart.splice(i, 1));
     
-    // เพิ่มรายการคู่
+    // ===== เพิ่มรายการคู่ =====
     cart.push(bundleItem);
     
+    // ===== Render =====
     renderCart();
     closeBundlePopup();
+    closePairModal();  // ⭐ ปิด Popup แนะนำคู่ด้วย (ถ้ายังเปิดอยู่)
 }
 </script>
 

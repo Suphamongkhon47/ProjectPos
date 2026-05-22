@@ -9,7 +9,7 @@ from products.Services.payment_service import PaymentService
 # ===================================
 # 1. สร้างบิลขาย (Transaction)
 # ===================================
-def create_sale_transaction(user, items_data, price_type='retail', discount_amount=0, remark='', doc_no=None, doc_type='SALE', ref_doc_no='', status='DRAFT', sale_id=None):
+def create_sale_transaction(user, items_data, price_type='retail', discount_amount=0, remark='', doc_no=None, doc_type='SALE', ref_doc_no='', status='HOLD', sale_id=None):
     if not items_data:
         raise ValueError("ไม่มีรายการสินค้า")
     

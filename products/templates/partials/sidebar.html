@@ -3,29 +3,31 @@
   
   {# ส่วนหัว - Profile #}
   <div class="px-4 py-5 border-b border-blue-700">
-    <div class="flex items-center gap-3 mb-3">
-      <div class="avatar {% if not request.user.profile.avatar %}placeholder{% endif %}">
-        <div class="w-11 h-11 rounded-full ring-2 ring-blue-700 overflow-hidden">
-          {% if request.user.profile.avatar %}
-            <img src="{{ request.user.profile.avatar }}" alt="Profile" class="object-cover w-full h-full" />
-          {% else %}
-            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 w-full h-full flex items-center justify-center">
-              <span class="text-lg font-bold text-white">{{ request.user.username.0|upper|default:"A" }}</span>
-            </div>
-          {% endif %}
+      <div class="flex items-center gap-3 mb-3">
+        <div class="avatar {% if not request.user.employee.avatar %}placeholder{% endif %}">
+          <div class="w-11 h-11 rounded-full ring-2 ring-blue-700 overflow-hidden">
+            {% if request.user.employee.avatar %}
+              <img src="{{ request.user.employee.avatar }}" alt="Profile" class="object-cover w-full h-full" />
+            {% else %}
+              <div class="bg-gradient-to-br from-blue-500 to-indigo-600 w-full h-full flex items-center justify-center">
+                <span class="text-lg font-bold text-white">{{ request.user.username.0|upper }}</span>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-white truncate">
+            {{ request.user.employee.nickname|default:request.user.get_full_name|default:request.user.username }}
+          </div>
+          <div class="text-xs text-blue-200 truncate">
+            {% if request.user.is_superuser %}
+              👑 เจ้าของ
+            {% elif request.user.is_staff %}
+              🧑‍💼 พนักงาน
+            {% endif %}
+          </div>
         </div>
       </div>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-semibold text-white truncate">{{ request.user.profile.nickname|default:request.user.username }}</div>
-        <div class="text-xs text-blue-200 truncate">
-          {% if request.user.profile.position == 'MANAGER' %}
-            👑 {{ request.user.profile.get_position_display }}
-          {% else %}
-            {{ request.user.profile.get_position_display|default:"พนักงาน" }}
-          {% endif %}
-        </div>
-      </div>
-    </div>
     
     {# Logout Button #}
     <button onclick="window.location.href='{% url 'logout' %}'" 

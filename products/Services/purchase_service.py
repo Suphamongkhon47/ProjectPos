@@ -4,9 +4,8 @@ products/Services/purchase_service.py
 1. ระบุชื่อคนนำเข้าใน Note (เพื่อให้รายงานแยกคนได้)
 2. หารต้นทุนสินค้าชุดถูกต้อง (ไม่เบิ้ลราคา)
 """
-from django.db import transaction
 from decimal import Decimal
-from products.models import Purchase, StockMovement, Product
+from products.models import  StockMovement , transaction
 
 def post_purchase(purchase_obj, user=None):
     """

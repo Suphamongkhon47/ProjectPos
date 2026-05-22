@@ -16,7 +16,7 @@ from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.utils import timezone
-
+from products.models import SystemSetting
 from products.models import Transaction, TransactionItem
 
 
@@ -125,7 +125,6 @@ def return_detail(request, return_id):
     แสดงรายละเอียดของบิลรับคืน 1 ใบ
     ✅ แยกสิทธิ์: Staff ดูได้เฉพาะบิลของตัวเอง
     """
-    from products.models import SystemSetting
     
     user = request.user
     is_owner = user.is_superuser

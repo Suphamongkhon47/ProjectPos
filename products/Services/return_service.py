@@ -14,7 +14,7 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 
 # ✅ แก้ Circular Import: import เฉพาะที่จำเป็น
-from products.models import Transaction, TransactionItem, Product
+from products.models import Transaction, TransactionItem, Product , StockMovement
 
 
 # ===================================
@@ -275,7 +275,6 @@ def post_return(return_sale):
     """
     
     # ✅ แก้ Circular Import: import ภายในฟังก์ชัน
-    from products.models import StockMovement
     
     if return_sale.doc_type != 'RETURN':
         raise ValueError("ไม่ใช่บิลรับคืน")
@@ -354,9 +353,6 @@ def cancel_return(return_sale):
     Returns:
         True
     """
-    
-    # ✅ แก้ Circular Import: import ภายในฟังก์ชัน
-    from products.models import StockMovement
     
     if return_sale.doc_type != 'RETURN':
         raise ValueError("ไม่ใช่บิลรับคืน")

@@ -26,6 +26,7 @@ urlpatterns = [
     # 📊 Dashboard (หน้าหลัก)
     # ========================================
     path('', dashboard.dashboard, name='home_dashboard'),
+    path('api/dashboard/stats/', dashboard.dashboard_stats_api, name='dashboard_stats_api'),
 
     
     
@@ -124,6 +125,8 @@ urlpatterns = [
     path('supplier/create/', supplier_view.supplier_create, name='supplier_create'),
     path('supplier/<int:supplier_id>/edit/', supplier_view.supplier_edit, name='supplier_edit'),
     path('supplier/<int:supplier_id>/delete/', supplier_view.supplier_delete, name='supplier_delete'),
+    path('supplier/<int:supplier_id>/products/', supplier_view.supplier_products_api, name='supplier_products_api'),
+    path('supplier/search-by-product/', supplier_view.supplier_search_by_product, name='supplier_search_by_product'),
     
     
     # ========================================

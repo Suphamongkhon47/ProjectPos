@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +45,14 @@ INSTALLED_APPS = [
     'theme',
     'django_browser_reload',
     'django.contrib.humanize',
+    'channels',
 ]
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -79,6 +87,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'pos_system.wsgi.application'
+ASGI_APPLICATION = 'pos_system.asgi.application'
 
 # ขนาดไฟล์อัปโหลดสูงสุด
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520  # 20MB

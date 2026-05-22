@@ -7,6 +7,8 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 import json
 from django.core.paginator import Paginator
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from products.Services.payment_service import PaymentService
 from products.models import Transaction, TransactionItem, Product, Supplier 
@@ -211,15 +213,23 @@ def create_return(request):
             received=refund_amount,
             note=f"คืนเงิน: {return_reason}\n{return_note}"
         )
-        
-        if refund_method == 'transfer' and hasattr(return_transaction.payment, 'refund_bank'):
-            return_transaction.payment.refund_bank = refund_bank
-            return_transaction.payment.refund_account = refund_account
-            return_transaction.payment.refund_name = refund_name
-            return_transaction.payment.save()
-        
+          
         post_return(return_transaction)
-        
+
+        # ===== Broadcast WebSocket → Dashboard =====
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "dashboard",
+            {
+                "type": "dashboard.update",
+                "data": {
+                    "event": "sale_posted",
+                    "doc_no": return_transaction.doc_no,
+                    "grand_total": float(return_transaction.grand_total),
+                }
+            }
+        )
+
         return JsonResponse({
             'success': True,
             'sale_id': return_transaction.id,

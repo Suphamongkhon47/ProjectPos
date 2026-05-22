@@ -111,7 +111,9 @@ def employee_add(request):
             first_name=first_name,
             last_name=last_name,
         )
-        # หมายเหตุ: สร้างมาเป็น User ธรรมดา = พนักงาน (Manager)
+        # ตั้งเป็นพนักงาน (is_staff = True)
+        user.is_staff = True
+        user.save()
         
         # 2. สร้าง/อัปเดต Employee Profile
         # (ปกติ Signal จะ create ให้แล้ว แต่เรา safe ไว้ check อีกที)
@@ -123,7 +125,7 @@ def employee_add(request):
         employee.nickname = nickname
         employee.phone = phone
         employee.address = address
-        employee.position = 'MANAGER'  # บังคับเป็น MANAGER ตาม Model ใหม่
+        employee.position = 'STAFF'  # บังคับเป็น STAFF (พนักงาน)
         
         if avatar_file:
             employee.set_avatar_from_file(avatar_file)
