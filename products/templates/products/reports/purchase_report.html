@@ -1,0 +1,241 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>📋 รายงานการนำเข้าสินค้า</title>
+  {% tailwind_css %}
+  <style>
+    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    .table-clean th { background-color: #f9fafb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb; padding: 1rem; white-space: nowrap; }
+    .table-clean td { border-bottom: 1px solid #f3f4f6; padding: 1rem; font-size: 0.95rem; vertical-align: middle; }
+    .stat-card { transition: all 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="text-gray-800">
+
+<div class="flex min-h-screen">
+
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+
+  {# Main Content #}
+  <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+    <div class="max-w-[1920px] mx-auto space-y-8">
+      
+      {# ========== 1. Header ========== #}
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">รายงานการนำเข้าสินค้า</h1>
+          <p class="text-gray-500 mt-1 text-base">ตรวจสอบประวัติการซื้อสินค้า ต้นทุน และเอกสารรับเข้า</p>
+        </div>
+      </div>
+
+      {# Messages #}
+      {% include "partials/messages.html" %}
+
+      {# ========== 2. Key Metrics (เหลือ 2 การ์ด) ========== #}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {# Card 1: จำนวนบิล (Total Purchases) #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">จำนวนบิลทั้งหมด</p>
+              {# ✅ ใช้ตัวแปร total_purchases จะได้จำนวนบิลที่ถูกต้อง #}
+              <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_purchases|intcomma }}</h3>
+              <p class="text-sm text-gray-400">ฉบับ</p>
+            </div>
+          </div>
+        </div>
+
+        {# Card 2: ยอดเงินรวม #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center text-green-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">ยอดรวมเงินทั้งหมด</p>
+              <h3 class="text-3xl font-bold text-green-600 mt-1">{{ stats.total_amount|floatformat:2|intcomma }}</h3>
+              <p class="text-sm text-gray-400">บาท</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ========== 3. Filter & Table ========== #}
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+          <form method="get" class="flex flex-col lg:flex-row gap-4 items-center flex-wrap">
+            
+            {# Date Range #}
+            <div class="flex items-center bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm gap-2 w-full lg:w-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <input type="date" name="date_from" 
+                    class="outline-none text-sm text-gray-600 cursor-pointer bg-transparent" 
+                    value="{{ date_from }}" title="ตั้งแต่วันที่">
+              <span class="text-gray-400">-</span>
+              <input type="date" name="date_to" class="outline-none text-sm text-gray-600 cursor-pointer bg-transparent" 
+                     value="{{ date_to }}" title="ถึงวันที่">
+            </div>
+
+            {# Search #}
+            <div class="flex-1 w-full relative min-w-[200px]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" name="search" class="input input-bordered w-full pl-10 bg-white" 
+                     placeholder="เลขที่บิล, ซัพพลายเออร์..." value="{{ search }}">
+            </div>
+
+            {# ✅ Filter User (ผู้บันทึก) #}
+            <select name="created_by" class="select select-bordered bg-white w-full lg:w-40">
+              <option value="">👤 ผู้บันทึก</option>
+              {% for u in users %}
+              <option value="{{ u.id }}" {% if created_by_id == u.id|stringformat:"s" %}selected{% endif %}>
+                {{ u.username }}
+              </option>
+              {% endfor %}
+            </select>
+
+            {# Supplier Filter #}
+            <select name="supplier" class="select select-bordered bg-white w-full lg:w-48">
+              <option value="">🏢 ทุกซัพพลายเออร์</option>
+              {% for sup in suppliers %}
+              <option value="{{ sup.id }}" {% if supplier_id == sup.id|stringformat:"s" %}selected{% endif %}>
+                {{ sup.name }}
+              </option>
+              {% endfor %}
+            </select>
+
+            {# Status Filter #}
+            <select name="status" class="select select-bordered bg-white w-full lg:w-32">
+              <option value="">📌 สถานะ</option>
+              <option value="DRAFT" {% if status == 'DRAFT' %}selected{% endif %}>📝 Draft</option>
+              <option value="POSTED" {% if status == 'POSTED' %}selected{% endif %}>✅ Posted</option>
+              <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>❌ Cancelled</option>
+            </select>
+            
+            <div class="flex gap-2">
+              <button type="submit" class="btn btn-primary px-6">กรอง</button>
+              <a href="{% url 'purchase_report' %}" class="btn btn-ghost text-gray-500">ล้างค่า</a>
+            </div>
+          </form>
+        </div>
+
+        {# Table #}
+        <div class="overflow-x-auto">
+          <table class="table table-clean w-full">
+            <thead>
+              <tr>
+                <th class="w-16 text-center">#</th>
+                <th>เลขที่เอกสาร / วันที่</th>
+                <th>ซัพพลายเออร์</th>
+                <th class="text-right">รายการสินค้า</th>
+                <th class="text-right">มูลค่าสุทธิ</th>
+                <th class="text-center">สถานะ</th>
+                <th>ผู้บันทึก</th>
+                <th class="text-center w-24">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for purchase in page_obj %}
+              <tr class="group hover:bg-gray-50 transition-colors {% if last_purchase_id == purchase.id %}bg-yellow-50{% endif %}">
+                <td class="text-center text-gray-400 font-mono text-sm">{{ forloop.counter }}</td>
+                <td>
+                  <div class="flex flex-col gap-0.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-gray-800 text-sm font-mono">{{ purchase.doc_no }}</span>
+                      {% if last_purchase_id == purchase.id %}
+                        <span class="badge badge-warning badge-xs">ใหม่!</span>
+                      {% endif %}
+                    </div>
+                    <span class="text-xs text-gray-500">{{ purchase.purchase_date|date:"d M Y • H:i" }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600 text-xs font-bold">
+                       {{ purchase.supplier.name|slice:":1"|upper }}
+                    </div>
+                    <span class="font-medium text-gray-700 text-sm">{{ purchase.supplier.name }}</span>
+                  </div>
+                </td>
+                <td class="text-right">
+                  <span class="badge badge-ghost badge-sm font-mono">{{ purchase.items.count }} รายการ</span>
+                </td>
+                <td class="text-right">
+                  <span class="font-bold text-green-600 text-base">{{ purchase.grand_total|default:0|floatformat:2|intcomma }}</span>
+                </td>
+                <td class="text-center">
+                  {% if purchase.status == 'DRAFT' %}
+                    <div class="badge badge-ghost gap-1 py-3 px-3">📝 Draft</div>
+                  {% elif purchase.status == 'POSTED' %}
+                    <div class="badge badge-success gap-1 text-white py-3 px-3 border-0 shadow-sm">✅ Posted</div>
+                  {% elif purchase.status == 'CANCELLED' %}
+                    <div class="badge badge-error gap-1 text-white py-3 px-3">❌ Cancelled</div>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="flex items-center gap-2">
+                     <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                        {{ purchase.created_by.username|slice:":1"|upper }}
+                     </div>
+                     <span class="text-sm text-gray-500">{{ purchase.created_by.username }}</span>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <a href="{% url 'purchase_detail' purchase.id %}" 
+                     class="btn btn-sm btn-outline btn-warning gap-1 hover:shadow-md transition-all">
+                    ดูบิล
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-16">
+                  <div class="flex flex-col items-center justify-center text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <p class="text-base font-medium">ไม่พบเอกสารรับเข้าในช่วงเวลานี้</p>
+                    <p class="text-sm text-gray-400 mt-2">ลองเปลี่ยนช่วงเวลาหรือเงื่อนไขการค้นหา</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        {# Pagination #}
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-gray-100 flex justify-center bg-gray-50/30">
+          <div class="join shadow-sm bg-white">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&supplier={{ supplier_id }}&status={{ status }}&created_by={{ created_by_id }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">«</a>
+            {% endif %}
+            
+            <button class="join-item btn btn-md bg-white border-gray-200 no-animation font-normal text-gray-500 cursor-default">หน้า {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</button>
+            
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&supplier={{ supplier_id }}&status={{ status }}&created_by={{ created_by_id }}&date_from={{ date_from }}&date_to={{ date_to }}" 
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">»</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        
+      </div>
+      
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

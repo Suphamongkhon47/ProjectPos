@@ -1,0 +1,540 @@
+{% load tailwind_tags %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>นำเข้าสินค้าจากไฟล์</title>
+  {% tailwind_css %}
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+<div class="flex min-h-screen">
+
+  {% include "partials/sidebar.html" %}
+
+  <main class="flex-1 p-6 overflow-y-auto">
+    <div class="container mx-auto px-4" style="max-width: 1600px;">
+      
+      {# Header #}
+      <div class="mb-6">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              นำเข้าสินค้าจากไฟล์
+            </h1>
+            <p class="text-sm text-gray-600">อัปโหลด Excel หรือ CSV เพื่อนำเข้าสินค้าจำนวนมาก</p>
+          </div>
+        </div>
+      </div>
+      
+      {# Messages #}
+      {% if messages %}
+        <div class="mb-6 space-y-3">
+          {% for m in messages %}
+            <div class="{% if m.tags == 'success' %}bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-800{% elif m.tags == 'error' %}bg-gradient-to-r from-red-50 to-rose-50 border-red-200 text-red-800{% else %}bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-800{% endif %} border-l-4 rounded-r-xl p-4 shadow-md">
+              <div class="flex items-center gap-3">
+                {% if m.tags == 'success' %}
+                  <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                {% elif m.tags == 'error' %}
+                  <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                {% else %}
+                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                {% endif %}
+                <span class="font-medium">{{ m|safe }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {# คำแนะนำ #}
+      <div class="card bg-white shadow-2xl mb-8 overflow-hidden gradient-border">
+        <div class="card-body p-6">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="badge badge-lg badge-primary gap-2 px-4 py-3">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              คู่มือการใช้งาน
+            </div>
+          </div>
+          
+          <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="alert shadow-md bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+              <span class="text-3xl">📊</span>
+              <div>
+                <div class="font-bold text-green-800">Excel (.xlsx, .xls)</div>
+                <div class="text-sm text-green-700">แนะนำ - ง่ายต่อการแก้ไข</div>
+              </div>
+            </div>
+            <div class="alert shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <span class="text-3xl">📄</span>
+              <div>
+                <div class="font-bold text-blue-800">CSV (.csv)</div>
+                <div class="text-sm text-blue-700">เบา รวดเร็ว</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="space-y-4">
+            <div class="flex items-center gap-2">
+              <div class="badge badge-success badge-lg">ขั้นตอน 1</div>
+              <h3 class="font-bold text-lg">คอลัมน์ที่จำเป็น</h3>
+            </div>
+            <div class="grid md:grid-cols-3 gap-3 text-sm">
+              <div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span><strong>SKU</strong> - รหัสสินค้า</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span><strong>ชื่อสินค้า</strong></span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span><strong>หมวดหมู่</strong></span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span><strong>ราคาทุน</strong> (ต่อหน่วยซื้อ)</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span><strong>ราคาขาย</strong> (ต่อชิ้น)</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span><strong>จำนวน</strong> (> 0)</span>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="flex items-center gap-2">
+              <div class="badge badge-info badge-lg">ขั้นตอน 2</div>
+              <h3 class="font-bold text-lg">คอลัมน์เสริม (ไม่บังคับ)</h3>
+            </div>
+            <div class="grid md:grid-cols-2 gap-3 text-sm">
+              <div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-300 transition">
+                <svg class="h-5 w-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span><strong>รุ่นรถที่ใช้ได้</strong> - เช่น "Vios 2012"</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-300 transition">
+                <svg class="h-5 w-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span><strong>ราคาส่ง</strong> - ราคาขายส่ง</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200 hover:border-amber-400 transition">
+                <svg class="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span><strong>ชิ้น/หน่วย</strong> - จำนวนชิ้นต่อหน่วยซื้อ</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200 hover:border-amber-400 transition">
+                <svg class="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span><strong>หน่วยซื้อ</strong> - เช่น กล่อง, ชุด, คู่</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-300 transition">
+                <svg class="h-5 w-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span><strong>หน่วย</strong> - หน่วยขาย (ชิ้น, อัน)</span>
+              </div>
+              <div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-300 transition">
+                <svg class="h-5 w-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span><strong>ผู้นำเข้า / ซัพพลายเออร์</strong></span>
+              </div>
+            </div>
+            
+            <div class="alert alert-warning shadow-lg bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400">
+              <div>
+                <svg class="stroke-current flex-shrink-0 h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div>
+                  <h3 class="font-bold text-amber-900">💡 ตัวอย่าง: ซื้อยางชุดละ 4 เส้น</h3>
+                  <div class="text-sm text-amber-800 mt-1">
+                    • <strong>จำนวน</strong> = 10 | <strong>ชิ้น/หน่วย</strong> = 4 | <strong>หน่วยซื้อ</strong> = ชุด<br>
+                    → สต็อกเพิ่ม <span class="badge badge-success">40 เส้น</span><br>
+                    • <strong>ราคาทุน</strong> = 800 (ต่อชุด) → ทุนต่อเส้น = <span class="badge badge-info">200 บาท</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# อัปโหลดไฟล์ #}
+      {% if not stage %}
+      <div class="card bg-white shadow-2xl">
+        <div class="card-body p-6">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="badge badge-primary badge-lg px-5 py-4 text-lg">1</div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">📤 อัปโหลดไฟล์</h2>
+              <p class="text-sm text-gray-600">เลือกไฟล์ Excel หรือ CSV จากคอมพิวเตอร์</p>
+            </div>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_file">
+
+            {# Upload Area #}
+            <div id="dropZone" class="border-4 border-dashed border-gray-300 rounded-2xl p-12 text-center bg-gradient-to-br from-gray-50 to-slate-50 hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 cursor-pointer mb-6">
+              <input type="file" name="file" id="fileInput" accept=".xlsx,.xls,.csv" class="hidden" required>
+              
+              <div id="uploadPlaceholder">
+                <div class="text-7xl mb-6 animate-bounce">📁</div>
+                <h3 class="text-2xl font-bold text-gray-700 mb-3">คลิกเพื่อเลือกไฟล์ หรือ ลากไฟล์มาวาง</h3>
+                <p class="text-gray-500 mb-6">รองรับ: <span class="badge badge-primary">Excel</span> <span class="badge badge-info">CSV</span> (ขนาดไม่เกิน 20MB)</p>
+                <button type="button" onclick="document.getElementById('fileInput').click()" class="btn btn-primary btn-lg gap-2 px-8 shadow-lg hover:shadow-xl transition">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
+                  เลือกไฟล์
+                </button>
+              </div>
+
+              <div id="filePreview" class="hidden">
+                <div class="text-7xl mb-6">✅</div>
+                <h3 class="text-2xl font-bold text-success mb-3">เลือกไฟล์แล้ว</h3>
+                <p id="fileName" class="text-xl font-semibold text-gray-700 mb-2"></p>
+                <p id="fileSize" class="text-gray-500 mb-6"></p>
+                <button type="button" onclick="resetFile()" class="btn btn-ghost gap-2">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  เปลี่ยนไฟล์
+                </button>
+              </div>
+            </div>
+
+            {# Form Fields #}
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold text-base flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    👤 ผู้นำเข้า
+                  </span>
+                  <span class="label-text-alt badge badge-ghost">ไม่บังคับ</span>
+                </label>
+                <input type="text" name="created_by" class="input input-bordered input-lg" 
+                       placeholder="ระบุชื่อผู้นำเข้า" 
+                       value="{{ request.user.username|default:'' }}">
+              </div>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold text-base flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    🏪 ซัพพลายเออร์
+                  </span>
+                  <span class="label-text-alt badge badge-ghost">ไม่บังคับ</span>
+                </label>
+                <select name="supplier" class="select select-bordered select-lg">
+                  <option value="">— ไม่ระบุ —</option>
+                  {% for s in suppliers %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+                <label class="label">
+                  <span class="label-text-alt text-info flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    ถ้าไฟล์มีคอลัมน์ "ซัพพลายเออร์" จะใช้จากไฟล์แทน
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {# Buttons #}
+            <div class="flex gap-4 justify-end">
+              <a href="{% url 'import_product_file' %}" class="btn btn-ghost btn-lg gap-2">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                ยกเลิก
+              </a>
+              <button type="submit" id="submitBtn" class="btn btn-primary btn-lg gap-2 px-8 shadow-lg hover:shadow-xl transition" disabled>
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                อัปโหลดและนำเข้า
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      {# ตารางข้อมูลที่นำเข้า #}
+      {% if stage %}
+      <div class="alert alert-success shadow-xl mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400">
+        <div>
+          <svg class="stroke-current flex-shrink-0 h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <h3 class="font-bold text-xl text-green-800">✅ นำเข้าข้อมูลสำเร็จ!</h3>
+            <div class="text-sm text-green-700 mt-1">กรุณาตรวจสอบข้อมูลในตารางด้านล่าง หากถูกต้องแล้วให้กดปุ่ม "บันทึกลงฐานข้อมูล"</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost gap-2" onclick="window.location.href='?reset=1';">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          อัปโหลดไฟล์ใหม่
+        </button>
+      </div>
+
+      <div class="card bg-white shadow-2xl">
+        <div class="card-body p-6">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                📋 ข้อมูลที่นำเข้า
+                <span class="badge badge-warning text-sm">ยังไม่บันทึก</span>
+              </h3>
+              <p class="text-sm text-gray-600 mt-1">ตรวจสอบความถูกต้องก่อนบันทึก</p>
+            </div>
+            <div class="badge badge-lg badge-success gap-2 px-6 py-4">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              {{ total_rows }} รายการ
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="table table-zebra">
+              <thead class="bg-gradient-to-r from-violet-600 to-purple-600 text-white">
+                <tr>
+                  <th class="text-center">#</th>
+                  <th>รหัส</th>
+                  <th>สินค้า</th>
+                  <th>หมวด</th>
+                  <th>รุ่นรถ</th>
+                  <th class="text-right">ราคา</th>
+                  <th class="text-right">จำนวน</th>
+                  <th>ผู้นำเข้า</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in stage %}
+                <tr class="hover:bg-blue-50 transition">
+                  <td class="text-center">
+                    <div class="badge badge-neutral font-bold">{{ forloop.counter }}</div>
+                  </td>
+                  <td>
+                    <span class="badge badge-ghost font-mono font-bold text-sm">{{ r.sku }}</span>
+                  </td>
+                  <td>
+                    <div class="font-bold text-gray-800">{{ r.name }}</div>
+                    <div class="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                      <span class="badge badge-sm badge-outline">{{ r.unit }}</span>
+                      {% if r.items_per_purchase_unit > 1 %}
+                        <span class="badge badge-sm badge-warning">{{ r.items_per_purchase_unit }} ชิ้น/{{ r.purchase_unit_name }}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-primary">{{ r.category_name }}</span>
+                  </td>
+                  <td>
+                    {% if r.compatible_models %}
+                      <div class="text-xs text-orange-800 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200 max-w-xs">
+                        🚗 {{ r.compatible_models }}
+                      </div>
+                    {% else %}
+                      <span class="text-gray-400 text-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">
+                    <div class="font-bold text-primary text-lg">{{ r.selling_price }}</div>
+                    <div class="text-xs text-gray-500">ส่ง: {{ r.wholesale_price|default:"—" }}</div>
+                    <div class="text-xs text-gray-500">ทุน: {{ r.cost_price }}</div>
+                  </td>
+                  <td class="text-right">
+                    <span class="badge badge-success badge-lg font-bold">
+                      {{ r.quantity }} {{ r.purchase_unit_name|default:r.unit }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm text-gray-600">{{ r.created_by|default:"—" }}</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="divider my-6"></div>
+
+          <div class="flex gap-4 justify-between items-center">
+            <div class="alert alert-warning flex-1">
+              <svg class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span><strong>⚠️ ข้อมูลยังไม่ถูกบันทึก</strong> - กรุณาตรวจสอบและกดบันทึกเพื่อยืนยัน</span>
+            </div>
+            <div class="flex gap-3">
+              <form method="post" onsubmit="return confirm('ต้องการยกเลิกข้อมูลทั้งหมดใช่หรือไม่?')">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="clear_all">
+                <button type="submit" class="btn btn-outline btn-error gap-2">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                  ยกเลิกทั้งหมด
+                </button>
+              </form>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="commit">
+                <button type="submit" class="btn btn-success btn-lg gap-2 shadow-lg hover:shadow-xl px-8" onclick="return confirm('ต้องการบันทึกข้อมูล {{ total_rows }} รายการลงฐานข้อมูลใช่หรือไม่?')">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  บันทึก {{ total_rows }} รายการลงฐานข้อมูล
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </main>
+</div>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+  const filePreview = document.getElementById('filePreview');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (dropZone && fileInput) {
+    dropZone.addEventListener('click', (e) => {
+      if (e.target.id !== 'fileInput' && !e.target.closest('button[type="button"]')) {
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener('change', handleFile);
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        handleFile();
+      }
+    });
+  }
+
+  function handleFile() {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const validTypes = ['.xlsx', '.xls', '.csv'];
+    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!validTypes.includes(fileExt)) {
+      alert('❌ รองรับเฉพาะไฟล์ .xlsx, .xls, .csv เท่านั้น');
+      resetFile();
+      return;
+    }
+
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+      alert('❌ ไฟล์มีขนาดใหญ่เกิน 20MB');
+      resetFile();
+      return;
+    }
+
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+    uploadPlaceholder.classList.add('hidden');
+    filePreview.classList.remove('hidden');
+    submitBtn.disabled = false;
+  }
+
+  function resetFile() {
+    fileInput.value = '';
+    uploadPlaceholder.classList.remove('hidden');
+    filePreview.classList.add('hidden');
+    submitBtn.disabled = true;
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  const uploadForm = document.getElementById('uploadForm');
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', (e) => {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <span class="loading loading-spinner"></span>
+        กำลังอัปโหลด...
+      `;
+    });
+  }
+</script>
+
+</body>
+</html>

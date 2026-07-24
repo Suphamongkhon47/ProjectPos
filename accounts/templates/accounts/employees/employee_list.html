@@ -1,0 +1,154 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>👥 จัดการพนักงาน</title>
+  {% tailwind_css %}
+</head>
+<body class="bg-base-200">
+
+<div class="flex min-h-screen">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+  
+  {# Main Content #}
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="max-w-[1800px] mx-auto">
+      
+      {# ========== Header ========== #}
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">👥 จัดการพนักงาน</h1>
+            <p class="text-gray-600">รายชื่อพนักงานทั้งหมด</p>
+          </div>
+          
+          <a href="{% url 'employee_add' %}" class="btn btn-primary gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            เพิ่มพนักงาน
+          </a>
+        </div>
+      </div>
+      
+      {# Messages #}
+      {% include "partials/messages.html" %}
+      
+      {# ========== ตารางรายชื่อ ========== #}
+      <div class="card bg-white shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">📋 รายชื่อพนักงาน</h2>
+          
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead class="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <tr>
+                  <th class="text-center">#</th>
+                  <th>ชื่อเล่น</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>Username</th>
+                  <th class="text-center">ตำแหน่ง</th>
+                  <th>เบอร์โทร</th>
+                  <th>ที่อยู่</th>
+                  <th class="text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for employee in employees %}
+                <tr>
+                  <td class="text-center">
+                    {{ forloop.counter|add:employees.start_index|add:"-1" }}
+                  </td>
+                  
+                  {# ชื่อเล่น #}
+                  <td>
+                    <div class="font-bold text-lg">{{ employee.nickname }}</div>
+                  </td>
+                  
+                  {# ชื่อ-สกุล #}
+                  <td>
+                    <span class="text-gray-700 text-lg">{{ employee.user.get_full_name }}</span>
+                  </td>
+                  
+                  {# Username #}
+                  <td>
+                    <span class="font-mono text-lg text-gray-500">{{ employee.user.username }}</span>
+                  </td>
+                  
+                  {# ตำแหน่ง (CHECK IS_SUPERUSER) #}
+                  <td class="text-center">
+                    {% if employee.user.is_superuser %}
+                      <span class="badge badge-warning badge-lg gap-1 shadow-sm text-white font-bold">
+                        👑 เจ้าของร้าน
+                      </span>
+                    {% else %}
+                      <span class="badge badge-info badge-lg gap-1 shadow-sm text-white">
+                        🔵 พนักงาน
+                      </span>
+                    {% endif %}
+                  </td>
+                  
+                  {# เบอร์โทร #}
+                  <td>
+                    {% if employee.phone %}
+                      <a href="tel:{{ employee.phone }}" class="link link-primary text-lg">
+                         {{ employee.phone }}
+                      </a>
+                    {% else %}
+                      <span class="text-gray-400 text-lg">-</span>
+                    {% endif %}
+                  </td>
+                  
+                  {# ที่อยู่ #}
+                  <td>
+                    {% if employee.address %}
+                      <div class="text-lg whitespace-normal leading-relaxed">
+                         {{ employee.address|truncatechars:30 }}
+                      </div>
+                    {% else %}
+                      <span class="text-gray-400 text-lg">-</span>
+                    {% endif %}
+                  </td>
+                  
+                  {# จัดการ #}
+                  <td class="text-center">
+                    <div class="join">
+                      <a href="{% url 'employee_edit' employee.id %}" 
+                         class="btn btn-ghost btn-sm join-item text-warning text-xl"
+                         title="แก้ไข">
+                        ✏️
+                      </a>
+                      
+                      <a href="{% url 'employee_delete' employee.id %}" 
+                         class="btn btn-ghost btn-sm text-error text-xl"
+                         title="ลบ"
+                         onclick="return confirm('⚠️ คุณแน่ใจว่าจะลบ {{ employee.nickname }} ใช่หรือไม่?')">
+                        🗑️
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center py-8">
+                    <div class="text-4xl mb-2">👥</div>
+                    <div class="text-gray-500">ยังไม่มีพนักงาน</div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+</div>
+</body>
+</html>

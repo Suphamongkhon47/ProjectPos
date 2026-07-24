@@ -1,0 +1,203 @@
+<dialog id="payment-cash-modal" class="modal">
+  <div class="modal-box max-w-2xl">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-2xl font-bold">💰 ชำระเงิน (เงินสด)</h3>
+      <button class="btn btn-sm btn-circle btn-ghost" onclick="closeCashModal()">✕</button>
+    </div>
+    
+    <!-- Content -->
+    <div class="space-y-6">
+      
+      <!-- ยอดชำระ -->
+      <div class="text-center bg-primary/10 p-4 rounded-lg">
+        <p class="text-gray-600 text-sm">ยอดที่ต้องชำระ</p>
+        <p class="text-5xl font-bold text-primary" id="modal-cash-total">0.00 ฿</p>
+      </div>
+      
+      <!-- รับเงิน -->
+      <div>
+        <label class="label">
+          <span class="label-text font-semibold text-lg">รับเงินจากลูกค้า:</span>
+        </label>
+        <input type="number" 
+               id="modal-cash-received"
+               class="input input-bordered input-lg w-full text-right text-3xl font-bold" 
+               placeholder="0.00"
+               value="0"
+               min="0"
+               step="0.01"
+               oninput="calculateCashChange()">
+      </div>
+      
+      <!-- ปุ่มช่วยคำนวณ -->
+      <div class="grid grid-cols-5 gap-2">
+        <button class="btn btn-outline" onclick="setCashReceived('exact')">พอดี</button>
+        <button class="btn btn-outline" onclick="setCashReceived(100)">+100</button>
+        <button class="btn btn-outline" onclick="setCashReceived(500)">+500</button>
+        <button class="btn btn-outline" onclick="setCashReceived(1000)">+1000</button>
+        <button class="btn btn-outline" onclick="setCashReceived(0)">ล้าง</button>
+      </div>
+      
+      <!-- เงินทอน -->
+      <div class="divider my-4"></div>
+      
+      <div class="bg-base-200 p-6 rounded-lg">
+        <div class="flex justify-between items-center">
+          <span class="text-xl text-gray-600">เงินทอน:</span>
+          <span class="text-5xl font-bold text-warning" id="modal-cash-change">0.00 ฿</span>
+        </div>
+        
+        <!-- สถานะ -->
+        <div id="modal-cash-status" class="mt-4 hidden">
+          <div class="alert" id="modal-cash-status-alert">
+            <span id="modal-cash-status-text"></span>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- Footer -->
+    <div class="modal-action">
+      <button class="btn btn-lg btn-outline" onclick="closeCashModal()">ยกเลิก</button>
+      <button class="btn btn-success btn-lg" onclick="confirmCashPayment()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        ยืนยันการชำระเงิน
+      </button>
+    </div>
+    
+  </div>
+  
+  <!-- Background Overlay -->
+  <form method="dialog" class="modal-backdrop">
+    <button>ปิด</button>
+  </form>
+</dialog>
+
+<script>
+// ===================================
+// Modal เงินสด - Functions
+// ===================================
+
+function openCashModal() {
+  // ดึงยอดชำระจากหน้าหลัก
+  const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace(' ฿', '')) || 0;
+  
+  // แสดงใน Modal
+  document.getElementById('modal-cash-total').textContent = grandTotal.toFixed(2) + ' ฿';
+  
+  // รีเซ็ตค่า
+  document.getElementById('modal-cash-received').value = '0';
+  document.getElementById('modal-cash-change').textContent = '0.00 ฿';
+  document.getElementById('modal-cash-status').classList.add('hidden');
+  
+  // เปิด Modal
+  document.getElementById('payment-cash-modal').showModal();
+  
+  // Focus ที่ช่องรับเงิน
+  setTimeout(() => {
+    document.getElementById('modal-cash-received').focus();
+    document.getElementById('modal-cash-received').select();
+  }, 100);
+}
+
+function closeCashModal() {
+  document.getElementById('payment-cash-modal').close();
+}
+
+function calculateCashChange() {
+  const totalText = document.getElementById('modal-cash-total').textContent.replace(' ฿', '');
+  const grandTotal = parseFloat(totalText) || 0;
+  const received = parseFloat(document.getElementById('modal-cash-received').value) || 0;
+  const change = received - grandTotal;
+  
+  const changeElement = document.getElementById('modal-cash-change');
+  const statusDiv = document.getElementById('modal-cash-status');
+  const statusAlert = document.getElementById('modal-cash-status-alert');
+  const statusText = document.getElementById('modal-cash-status-text');
+  
+  if (change < 0) {
+    changeElement.textContent = change.toFixed(2) + ' ฿';
+    changeElement.className = 'text-5xl font-bold text-error';
+    
+    statusAlert.className = 'alert alert-error';
+    statusText.textContent = `⚠️ เงินไม่พอ ขาดอีก ${Math.abs(change).toFixed(2)} บาท`;
+    statusDiv.classList.remove('hidden');
+  } else if (change === 0 && received > 0) {
+    changeElement.textContent = change.toFixed(2) + ' ฿';
+    changeElement.className = 'text-5xl font-bold text-success';
+    
+    statusAlert.className = 'alert alert-success';
+    statusText.textContent = '✅ เงินพอดี';
+    statusDiv.classList.remove('hidden');
+  } else if (change > 0) {
+    changeElement.textContent = change.toFixed(2) + ' ฿';
+    changeElement.className = 'text-5xl font-bold text-warning';
+    
+    statusAlert.className = 'alert alert-info';
+    statusText.textContent = `💰 ทอนเงิน ${change.toFixed(2)} บาท`;
+    statusDiv.classList.remove('hidden');
+  } else {
+    changeElement.textContent = '0.00 ฿';
+    changeElement.className = 'text-5xl font-bold text-gray-400';
+    statusDiv.classList.add('hidden');
+  }
+}
+
+function setCashReceived(value) {
+  const totalText = document.getElementById('modal-cash-total').textContent.replace(' ฿', '');
+  const grandTotal = parseFloat(totalText) || 0;
+  const currentReceived = parseFloat(document.getElementById('modal-cash-received').value) || 0;
+  
+  if (value === 'exact') {
+    document.getElementById('modal-cash-received').value = grandTotal.toFixed(2);
+  } else if (value === 0) {
+    document.getElementById('modal-cash-received').value = '0';
+  } else {
+    document.getElementById('modal-cash-received').value = (currentReceived + value).toFixed(2);
+  }
+  
+  calculateCashChange();
+}
+
+function confirmCashPayment() {
+  const totalText = document.getElementById('modal-cash-total').textContent.replace(' ฿', '');
+  const grandTotal = parseFloat(totalText) || 0;
+  const received = parseFloat(document.getElementById('modal-cash-received').value) || 0;
+  
+  if (received < grandTotal) {
+    alert(`⚠️ เงินไม่พอ!\n\nยอดที่ต้องชำระ: ${grandTotal.toFixed(2)} บาท\nรับเงิน: ${received.toFixed(2)} บาท\nขาดอีก: ${(grandTotal - received).toFixed(2)} บาท`);
+    return;
+  }
+  
+  // เก็บข้อมูลการชำระเงิน
+  window.paymentData = {
+    method: 'cash',
+    received: received,
+    change: received - grandTotal
+  };
+  
+  // ปิด Modal
+  closeCashModal();
+  
+  // บันทึกบิล
+  saveSaleWithPayment();
+}
+
+// Enter = ยืนยัน
+document.addEventListener('DOMContentLoaded', function() {
+  const receivedInput = document.getElementById('modal-cash-received');
+  if (receivedInput) {
+    receivedInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmCashPayment();
+      }
+    });
+  }
+});
+</script>

@@ -1,0 +1,163 @@
+{% load tailwind_tags %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>แก้ไขสินค้า: {{ product.name }}</title>
+  {% tailwind_css %}
+</head>
+<body class="bg-base-200">
+
+<div class="flex min-h-screen">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+
+  {# Main Content #}
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="max-w-4xl mx-auto">
+      
+      {# Header #}
+      <div class="mb-6 flex items-center gap-4">
+        <a href="{% url 'manage_products' %}" class="btn btn-circle btn-ghost">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        </a>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">✏️ แก้ไขสินค้า</h1>
+          <p class="text-gray-600">รหัส: <span class="font-mono font-bold">{{ product.sku }}</span></p>
+        </div>
+      </div>
+
+      {# Messages #}
+      {% include "partials/messages.html" %}
+
+      {# Form #}
+      <form method="post" enctype="multipart/form-data" class="card bg-white shadow-xl">
+        {% csrf_token %}
+        
+        <div class="card-body">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {# 1. ข้อมูลพื้นฐาน #}
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold border-b pb-2 mb-4">📦 ข้อมูลพื้นฐาน</h3>
+                    
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">รหัสสินค้า (SKU) <span class="text-error">*</span></span></label>
+                        <input type="text" name="sku" value="{{ product.sku }}" class="input input-bordered" required>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">ชื่อสินค้า <span class="text-error">*</span></span></label>
+                        <input type="text" name="name" value="{{ product.name }}" class="input input-bordered" required>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">หมวดหมู่</span></label>
+                        <select name="category" class="select select-bordered">
+                            <option value="">-- เลือกหมวดหมู่ --</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat.id }}" {% if product.category_id == cat.id %}selected{% endif %}>
+                                    {{ cat.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <span class="label-text font-semibold">สถานะการใช้งาน</span>
+                            <input type="checkbox" name="is_active" class="toggle toggle-success" {% if product.is_active %}checked{% endif %}>
+                            <span class="label-text-alt">(เปิด/ปิด การขายสินค้านี้)</span>
+                        </label>
+                    </div>
+                </div>
+
+                {# 2. ราคาและสต็อก #}
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold border-b pb-2 mb-4">💰 ราคาและสต็อก</h3>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">ราคาทุน</span></label>
+                            <input type="number" step="0.01" name="cost_price" value="{{ product.cost_price|floatformat:2 }}" class="input input-bordered">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">ราคาขายปลีก <span class="text-error">*</span></span></label>
+                            <input type="number" step="0.01" name="selling_price" value="{{ product.selling_price|floatformat:2 }}" class="input input-bordered" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">ราคาขายส่ง</span></label>
+                            <input type="number" step="0.01" name="wholesale_price" value="{{ product.wholesale_price|floatformat:2 }}" class="input input-bordered">
+                        </div>
+                         <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">หน่วยนับ</span>
+                                <div class="tooltip tooltip-left" data-tip="ไม่สามารถแก้ไขหน่วยนับได้ เพื่อป้องกันความผิดพลาด">
+                                    <span class="label-text-alt text-gray-500 cursor-help flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
+                                          <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                                        </svg>
+                                        ล็อก
+                                    </span>
+                                </div>
+                            </label>
+                            <!-- ใช้ readonly และเปลี่ยนสีพื้นหลังให้รู้ว่าแก้ไม่ได้ -->
+                            <input type="text" name="unit" value="{{ product.unit }}" class="input input-bordered bg-base-200 text-gray-500 cursor-not-allowed focus:outline-none" readonly>
+                        </div>
+                    </div>
+                    
+                    {# แสดงสต็อกปัจจุบัน (แก้ไขไม่ได้ในหน้านี้) #}
+                    <div class="alert alert-info shadow-sm mt-2 py-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <h3 class="font-bold text-sm">สต็อกปัจจุบัน: {{ product.quantity|default:0 }} {{ product.unit }}</h3>
+                            <div class="text-xs">หากต้องการปรับสต็อก โปรดใช้เมนู "รับสินค้าเข้า" หรือ "ปรับปรุงสต็อก"</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Action Buttons #}
+            <div class="modal-action justify-between items-center mt-8 pt-4 border-t">
+                <button type="button" onclick="confirmDelete()" class="btn btn-error btn-outline gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    ลบสินค้านี้
+                </button>
+                
+                <div class="flex gap-2">
+                    <a href="{% url 'manage_products' %}" class="btn btn-ghost">ยกเลิก</a>
+                    <button type="submit" class="btn btn-primary gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                        บันทึกการแก้ไข
+                    </button>
+                </div>
+            </div>
+
+        </div>
+      </form>
+
+      {# Form สำหรับลบสินค้า (Hidden) #}
+      <form id="delete-form" action="{% url 'delete_product' product.id %}" method="post" class="hidden">
+        {% csrf_token %}
+      </form>
+
+    </div>
+  </main>
+</div>
+
+<script>
+function confirmDelete() {
+    if (confirm('คุณต้องการลบสินค้า "{{ product.name }}" ใช่หรือไม่?\n\n⚠️ คำเตือน: การลบสินค้าอาจส่งผลกระทบต่อประวัติการขายและสต็อก หากสินค้าเคยมีการเคลื่อนไหว ระบบอาจปฏิเสธการลบเพื่อรักษาความถูกต้องของข้อมูล')) {
+        document.getElementById('delete-form').submit();
+    }
+}
+</script>
+
+</body>
+</html>

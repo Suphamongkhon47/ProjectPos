@@ -1,0 +1,192 @@
+<!-- Modal ชำระเงิน - QR Code -->
+<dialog id="payment-qr-modal" class="modal">
+  <div class="modal-box max-w-2xl">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-2xl font-bold">💰 ชำระเงิน (QR Code)</h3>
+      <button class="btn btn-sm btn-circle btn-ghost" onclick="closeQRModal()">✕</button>
+    </div>
+    
+    <!-- Content -->
+    <div class="space-y-6">
+      
+      <!-- ยอดชำระ -->
+      <div class="text-center bg-primary/10 p-4 rounded-lg">
+        <p class="text-gray-600 text-sm">ยอดที่ต้องชำระ</p>
+        <p class="text-5xl font-bold text-primary" id="modal-qr-total">0.00 ฿</p>
+      </div>
+      
+      <!-- QR Code -->
+      <div class="flex justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl">
+          <div id="qr-code-container" class="flex items-center justify-center w-64 h-64 bg-gray-100 rounded">
+            <div class="text-center">
+              <div class="loading loading-spinner loading-lg"></div>
+              <p class="text-gray-500 mt-2">กำลังสร้าง QR Code...</p>
+            </div>
+          </div>
+          <p class="text-center text-sm text-gray-600 mt-4">
+            เลขที่บิล: <span id="modal-qr-doc-no" class="font-mono font-bold">-</span>
+          </p>
+        </div>
+      </div>
+      
+      <!-- คำแนะนำ -->
+      <div class="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <h3 class="font-bold">วิธีชำระเงิน</h3>
+          <div class="text-sm">
+            1. เปิดแอปธนาคารของคุณ<br>
+            2. สแกน QR Code ด้านบน<br>
+            3. <strong>ยอดเงินจะปรากฏอัตโนมัติ</strong> (เช่น 500 บาท)<br>
+            4. ยืนยันการโอนเงิน<br>
+            5. แสดงสลิปการโอนให้พนักงาน
+          </div>
+        </div>
+      </div>
+      
+      <!-- Checkbox ยืนยัน -->
+      <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-4">
+          <input type="checkbox" id="modal-qr-confirm" class="checkbox checkbox-lg checkbox-success" />
+          <span class="label-text text-lg">✅ ลูกค้าโอนเงินแล้ว (ตรวจสอบสลิปแล้ว)</span>
+        </label>
+      </div>
+      
+    </div>
+    
+    <!-- Footer -->
+    <div class="modal-action">
+      <button class="btn btn-lg btn-outline" onclick="closeQRModal()">ยกเลิก</button>
+      <button class="btn btn-success btn-lg" onclick="confirmQRPayment()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        ยืนยันการชำระเงิน
+      </button>
+    </div>
+    
+  </div>
+  
+  <form method="dialog" class="modal-backdrop">
+    <button>ปิด</button>
+  </form>
+</dialog>
+
+<script>
+// ===================================
+// Modal QR Code - Functions
+// ===================================
+
+async function openQRModal() {
+  const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace(' ฿', '')) || 0;
+  const docNo = document.getElementById('doc-no').textContent;
+  
+  // แสดงยอดเงิน
+  document.getElementById('modal-qr-total').textContent = grandTotal.toFixed(2) + ' ฿';
+  document.getElementById('modal-qr-doc-no').textContent = docNo;
+  document.getElementById('modal-qr-confirm').checked = false;
+  
+  // เปิด Modal
+  document.getElementById('payment-qr-modal').showModal();
+  
+  // ✅ สร้าง QR Code (เรียก API)
+  await generateQRCode(grandTotal, docNo);
+}
+
+function closeQRModal() {
+  document.getElementById('payment-qr-modal').close();
+}
+
+// ✅ ฟังก์ชันสร้าง QR Code จริง
+async function generateQRCode(amount, docNo) {
+  const container = document.getElementById('qr-code-container');
+  
+  // แสดง Loading
+  container.innerHTML = `
+    <div class="text-center">
+      <div class="loading loading-spinner loading-lg"></div>
+      <p class="text-gray-500 mt-2">กำลังสร้าง QR Code...</p>
+    </div>
+  `;
+  
+  try {
+    // ✅ เรียก API สร้าง QR
+    const response = await fetch("{% url 'generate_qr_code' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({
+        amount: amount,
+        reference: docNo
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // ✅ แสดง QR Code
+      container.innerHTML = `
+        <img src="${result.qr_image}" 
+             alt="QR Code PromptPay" 
+             class="w-64 h-64"
+             style="image-rendering: pixelated;">
+      `;
+      
+      console.log('✅ QR Code สร้างสำเร็จ:', amount, 'บาท');
+    } else {
+      // ❌ แสดง Error
+      container.innerHTML = `
+        <div class="text-center text-error">
+          <div class="text-4xl mb-2">❌</div>
+          <p class="text-sm">${result.error}</p>
+        </div>
+      `;
+      
+      console.error('❌ QR Code Error:', result.error);
+    }
+    
+  } catch (error) {
+    // ❌ แสดง Error
+    console.error('❌ QR Code Error:', error);
+    container.innerHTML = `
+      <div class="text-center text-error">
+        <div class="text-4xl mb-2">❌</div>
+        <p class="text-sm">ไม่สามารถสร้าง QR Code ได้</p>
+        <p class="text-xs text-gray-500 mt-2">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+function confirmQRPayment() {
+  const confirmed = document.getElementById('modal-qr-confirm').checked;
+  
+  if (!confirmed) {
+    alert('⚠️ กรุณายืนยันว่าลูกค้าโอนเงินแล้ว');
+    return;
+  }
+  
+  const totalText = document.getElementById('modal-qr-total').textContent.replace(' ฿', '');
+  const grandTotal = parseFloat(totalText) || 0;
+  
+  // เก็บข้อมูลการชำระเงิน
+  window.paymentData = {
+    method: 'qr',
+    received: grandTotal,
+    change: 0
+  };
+  
+  // ปิด Modal
+  closeQRModal();
+  
+  // บันทึกบิล
+  saveSaleWithPayment();
+}
+</script>

@@ -1,0 +1,346 @@
+{% load tailwind_tags %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>นำเข้าสินค้า (Manual)</title>
+  {% tailwind_css %}
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+<body class="text-slate-800 h-screen flex overflow-hidden">
+
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+
+  <main class="flex-1 flex flex-col h-screen min-w-0">
+    
+    {# --- Header --- #}
+    <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shadow-sm z-10 shrink-0">
+      <h1 class="font-bold text-slate-700 flex items-center gap-3 text-lg">
+        <span class="bg-indigo-100 text-indigo-600 p-2 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </span>
+        บันทึกรับเข้าสินค้า (Manual Import)
+      </h1>
+      <div class="text-sm font-medium text-slate-500 bg-slate-50 border border-slate-200 px-4 py-1.5 rounded-full shadow-sm">
+         รายการรอ: <span class="text-indigo-600 font-bold text-base ml-1">{{ total_rows|default:0 }}</span>
+      </div>
+    </header>
+
+    {# --- Content Layout --- #}
+    <div class="flex-1 flex overflow-hidden">
+      
+      {# === LEFT: Form (ขยายกว้างขึ้นเป็น 450px) === #}
+      <div class="w-[650px] bg-white border-r border-slate-200 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-0 shrink-0">
+        
+        <div class="p-5 border-b border-slate-100 bg-slate-50/50">
+           <h2 class="text-sm font-bold text-slate-600 uppercase tracking-wide flex items-center gap-2">
+             {% if edit_data %}
+                <span class="text-amber-500">✏️</span> แก้ไขข้อมูล
+             {% else %}
+                <span class="text-indigo-500">📝</span> กรอกรายละเอียดสินค้า
+             {% endif %}
+           </h2>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_row">
+
+            {# Messages Area #}
+            {% if messages %}
+              <div class="space-y-2 mb-4">
+                {% for m in messages %}
+                  <div class="text-xs px-3 py-2 rounded border shadow-sm flex items-center gap-2 {% if m.tags == 'success' %}bg-green-50 border-green-200 text-green-700{% else %}bg-red-50 border-red-200 text-red-700{% endif %}">
+                    {{ m|safe }}
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            {# 1. ข้อมูลหลัก #}
+            <div class="space-y-4">
+              <div class="grid grid-cols-12 gap-3">
+                <div class="col-span-4">
+                  <label class="block text-xs font-bold text-slate-500 mb-1.5">รหัสสินค้า (SKU)</label>
+                  <input name="sku" class="w-full h-10 px-3 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition bg-slate-50 font-mono" placeholder="Auto" value="{{ edit_data.sku|default:'' }}">
+                </div>
+                <div class="col-span-8">
+                  <label class="block text-xs font-bold text-slate-500 mb-1.5">หมวดหมู่ <span class="text-red-500">*</span></label>
+                  <select name="category" class="w-full h-10 px-3 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition" required>
+                    <option value="">- กรุณาเลือก -</option>
+                    {% for c in categories %}
+                      <option value="{{ c.id }}" {% if edit_data and edit_data.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่อสินค้า <span class="text-red-500">*</span></label>
+                <input name="name" class="w-full h-10 px-3 border border-slate-300 rounded-lg text-sm font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm" required placeholder="ระบุชื่อสินค้า..." value="{{ edit_data.name|default:'' }}">
+              </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            {# 2. คำนวณสต็อก (ใหญ่ขึ้น ชัดเจนขึ้น) #}
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+              <label class="block text-xs font-bold text-indigo-700 mb-3  items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                คำนวณสต็อกรับเข้า
+              </label>
+              
+              <div class="flex items-start gap-2">
+                <div class="flex-1">
+                  <label class="block text-[10px] text-slate-500 mb-1 ml-1">จำนวนนำเข้า</label>
+                  <input type="number" id="qtyInput" name="quantity" class="w-full h-10 text-center border border-indigo-300 rounded-lg text-lg font-bold text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white shadow-sm" step="0.01" required value="{{ edit_data.quantity|default:'' }}" placeholder="0">
+                </div>
+                
+                <div class="w-[85px]">
+                   <label class="block text-[10px] text-slate-500 mb-1 ml-1">หน่วย</label>
+                   <select id="unitSelect" name="unit" class="w-full h-10 px-1 text-center border border-slate-300 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                      <option value="ชิ้น" {% if edit_data.unit == "ชิ้น" %}selected{% endif %}>ชิ้น</option>
+                      <option value="ชุด" {% if edit_data.unit == "ชุด" %}selected{% endif %}>ชุด</option>
+                      <option value="คู่" {% if edit_data.unit == "คู่" %}selected{% endif %}>คู่</option>
+                      <option value="กล่อง" {% if edit_data.unit == "กล่อง" %}selected{% endif %}>กล่อง</option>
+                      <option value="ลัง" {% if edit_data.unit == "ลัง" %}selected{% endif %}>ลัง</option>
+                   </select>
+                </div>
+
+                <div class="pt-8 text-slate-400 font-bold">×</div>
+
+                <div class="w-[60px]">
+                   <label class="block text-[10px] text-slate-500 mb-1 ml-1">ต่อหน่วย</label>
+                   <input type="number" id="itemsPerUnit" name="items_per_purchase_unit" class="w-full h-10 text-center border border-slate-300 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" min="1" value="{{ edit_data.items_per_purchase_unit|default:1 }}">
+                </div>
+
+                <div class="pt-8 text-slate-400 font-bold">=</div>
+
+                <div class="w-[70px]">
+                  <label class="block text-[10px] text-indigo-600 mb-1 ml-1 font-bold">รวม (ชิ้น)</label>
+                  <div class="w-full h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-base shadow-md" id="actualQty">0</div>
+                </div>
+              </div>
+            </div>
+
+            {# 3. ราคา #}
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1.5">ราคาทุน</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 text-slate-400 text-sm">฿</span>
+                    <input type="number" name="cost_price" class="w-full h-10 pl-6 pr-3 text-right border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" step="0.01" value="{{ edit_data.cost_price|default:'' }}" placeholder="0.00">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-green-600 mb-1.5">ราคาขาย</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 text-green-500 text-sm">฿</span>
+                    <input type="number" name="selling_price" class="w-full h-10 pl-6 pr-3 text-right border border-green-300 rounded-lg text-sm font-bold text-green-700 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-green-50/30" step="0.01" value="{{ edit_data.selling_price|default:'' }}" placeholder="0.00">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1.5">ราคาส่ง</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 text-slate-400 text-sm">฿</span>
+                    <input type="number" name="wholesale_price" class="w-full h-10 pl-6 pr-3 text-right border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" step="0.01" value="{{ edit_data.wholesale_price|default:'' }}" placeholder="0.00">
+                </div>
+              </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            {# 4. ข้อมูลเพิ่มเติม (เปิดโชว์เลย ไม่ซ่อนแล้ว) #}
+            <div class="space-y-4 pt-1">
+                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">ข้อมูลเพิ่มเติม</h3>
+                 
+                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                       <label class="block text-xs font-bold text-slate-500 mb-1.5">ประเภทชุด (Bundle)</label>
+                       <select name="bundle_type" class="w-full h-10 px-3 border border-slate-300 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                          <option value="SAME">ปกติ (เหมือนกัน)</option>
+                          <option value="L-R" {% if edit_data.bundle_type == 'L-R' %}selected{% endif %}>ซ้าย-ขวา</option>
+                          <option value="F-R" {% if edit_data.bundle_type == 'F-R' %}selected{% endif %}>หน้า-หลัง</option>
+                       </select>
+                    </div>
+                    <div>
+                       <label class="block text-xs font-bold text-slate-500 mb-1.5">ซัพพลายเออร์</label>
+                       <select name="supplier" class="w-full h-10 px-3 border border-slate-300 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                          <option value="">-- ไม่ระบุ --</option>
+                          {% for s in suppliers %}
+                             <option value="{{ s.id }}" {% if edit_data.supplier_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                          {% endfor %}
+                       </select>
+                    </div>
+                 </div>
+
+                 <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5">รุ่นรถที่รองรับ</label>
+                    <textarea name="compatible_models" class="w-full border border-slate-300 rounded-lg text-sm p-3 h-20 resize-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition" placeholder="เช่น VIOS 2012, CIVIC FD (เว้นวรรคหรือขึ้นบรรทัดใหม่)">{{ edit_data.compatible_models|default:'' }}</textarea>
+                 </div>
+            </div>
+
+            {# ปุ่มบันทึก #}
+            <div class="pt-4 pb-4">
+               <button type="submit" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transition transform active:scale-[0.98] text-sm">
+                 {% if edit_data %}
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                   บันทึกการแก้ไข
+                 {% else %}
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                   เพิ่มรายการ
+                 {% endif %}
+               </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {# === RIGHT: Table === #}
+      <div class="flex-1 bg-slate-50 flex flex-col min-w-0">
+        
+        {# Toolbar #}
+        <div class="h-16 px-6 flex justify-between items-center border-b border-slate-200 bg-white">
+           <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              รายการที่รอนำเข้า (Preview)
+           </h3>
+           <div class="flex gap-3">
+              <form method="post" onsubmit="return confirm('ยืนยันล้างข้อมูลทั้งหมด?');">
+                 {% csrf_token %}
+                 <input type="hidden" name="action" value="clear_all">
+                 <button class="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition h-9 flex items-center gap-1" {% if not stage %}disabled{% endif %}>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    ล้างทั้งหมด
+                 </button>
+              </form>
+              <form method="post">
+                 {% csrf_token %}
+                 <input type="hidden" name="action" value="commit">
+                 <button class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-2 transition hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed h-9" {% if not stage %}disabled{% endif %}>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    ยืนยันบันทึก
+                 </button>
+              </form>
+           </div>
+        </div>
+
+        {# Table Area #}
+        <div class="flex-1 overflow-auto p-6">
+           <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-h-[500px]">
+              <table class="w-full text-left">
+                 <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wider">
+                    <tr>
+                       <th class="px-4 py-3 font-bold w-12 text-center">#</th>
+                       <th class="px-4 py-3 font-bold">สินค้า</th>
+                       <th class="px-4 py-3 font-bold text-right w-24">ทุน</th>
+                       <th class="px-4 py-3 font-bold text-right text-green-600 w-24">ขายปลีก</th>
+                       <th class="px-4 py-3 font-bold text-right text-blue-600 w-24">ขายส่ง</th>
+                       <th class="px-4 py-3 font-bold text-right w-24">จำนวน</th>
+                       <th class="px-4 py-3 font-bold w-20 text-center"></th>
+                    </tr>
+                 </thead>
+                 <tbody class="divide-y divide-slate-100 text-sm">
+                    {% for r in stage %}
+                    <tr class="hover:bg-indigo-50/40 transition group">
+                       <td class="px-4 py-3 text-center text-slate-400 font-medium">{{ forloop.counter }}</td>
+                       <td class="px-4 py-3">
+                          <div class="font-bold text-slate-700">{{ r.name }}</div>
+                          <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                             <span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] border border-slate-200 font-mono">{{ r.sku|default:"AUTO" }}</span>
+                             <span class="text-[10px] text-indigo-500 font-medium">{{ r.category_name }}</span>
+                             {% if r.bundle_type != 'SAME' %}
+                                <span class="px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px] border border-amber-100">
+                                   {% if r.bundle_type == 'L-R' %}ซ้าย-ขวา{% else %}หน้า-หลัง{% endif %}
+                                </span>
+                             {% endif %}
+                          </div>
+                       </td>
+                       <td class="px-4 py-3 text-right text-slate-500 font-mono">{{ r.cost_price }}</td>
+                       <td class="px-4 py-3 text-right text-green-600 font-bold font-mono">{{ r.selling_price }}</td>
+                       <td class="px-4 py-3 text-right text-blue-600 font-bold font-mono">{{ r.wholesale_price }}</td>
+                       <td class="px-4 py-3 text-right">
+                          <div class="font-bold text-slate-700">{{ r.quantity }} <span class="font-normal text-slate-500 text-xs">{{ r.unit }}</span></div>
+                          {% if r.items_per_purchase_unit > 1 %}
+                             <div class="text-[10px] text-slate-400">
+                               x{{ r.items_per_purchase_unit }} (ต่อหน่วย)
+                             </div>
+                          {% endif %}
+                       </td>
+                       <td class="px-4 py-3 text-center">
+                          <div class="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <a href="?edit={{ forloop.counter0 }}" class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition" title="แก้ไข">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                             </a>
+                             <form method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove_row">
+                                <input type="hidden" name="index" value="{{ forloop.counter0 }}">
+                                <button class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="ลบ">
+                                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                             </form>
+                          </div>
+                       </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                       <td colspan="7" class="px-4 py-24 text-center">
+                          <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                             <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                          </div>
+                          <p class="text-slate-500 font-medium">ยังไม่มีรายการนำเข้า</p>
+                          <p class="text-slate-400 text-xs mt-1">กรอกข้อมูลทางซ้ายแล้วกด "เพิ่มรายการ"</p>
+                       </td>
+                    </tr>
+                    {% endfor %}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const qtyInput = document.getElementById('qtyInput');
+      const itemsInput = document.getElementById('itemsPerUnit');
+      const unitSelect = document.getElementById('unitSelect');
+      const actualQtyDiv = document.getElementById('actualQty');
+
+      function calculate() {
+        const q = parseFloat(qtyInput.value) || 0;
+        const i = parseInt(itemsInput.value) || 1;
+        const total = Math.ceil(q * i);
+        actualQtyDiv.innerText = total.toLocaleString();
+      }
+
+      function onUnitChange() {
+        const u = unitSelect.value;
+        if(u === 'คู่') { itemsInput.value = 2; } 
+        else if(['ชิ้น','อัน','เส้น','ลิตร'].includes(u)) { itemsInput.value = 1; }
+        calculate();
+      }
+
+      if(qtyInput && itemsInput && unitSelect) {
+        qtyInput.addEventListener('input', calculate);
+        itemsInput.addEventListener('input', calculate);
+        unitSelect.addEventListener('change', onUnitChange);
+        calculate();
+      }
+    });
+  </script>
+</body>
+</html>

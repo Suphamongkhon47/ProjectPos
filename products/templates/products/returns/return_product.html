@@ -1,0 +1,613 @@
+{% load tailwind_tags %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>🔄 รับคืนสินค้า - POS System</title>
+  {% tailwind_css %}
+  <style>
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .step-box {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid transparent;
+    }
+    
+    .step-box.active {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
+    
+    .btn-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+  </style>
+</head>
+<body class="bg-base-200">
+
+<div class="flex min-h-screen">
+  {% include "partials/sidebar.html" %}
+
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="max-w-[1400px] mx-auto">
+      
+      {# Header #}
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+              🔄 รับคืนสินค้า
+            </h1>
+            <p class="text-gray-600">คืนสินค้า → คืนเงิน → คืนสต็อก</p>
+          </div>
+          <div class="stats shadow-lg bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+            <div class="stat">
+              <div class="stat-title text-white/80">เลขที่รับคืน</div>
+              <div class="stat-value text-2xl font-mono">{{ doc_no }}</div>
+              <div class="stat-desc text-white/70">{{ today|date:"d/m/Y" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% include "partials/messages.html" %}
+
+      {# STEP 1: ค้นหาบิล #}
+      <div class="card bg-white shadow-xl mb-6 step-box active" id="step-1">
+        <div class="card-body">
+          <h2 class="card-title text-xl">
+            <span class="badge badge-lg badge-primary">1</span>
+            🔍 ค้นหาบิลเดิม
+          </h2>
+          
+          <div class="form-control mt-4">
+            <label class="label">
+              <span class="label-text font-semibold">ค้นหาด้วย: เลขที่บิล</span>
+            </label>
+            <div class="join w-full">
+              <input type="text" 
+                     id="search-sale"
+                     class="input input-bordered join-item flex-1 font-mono text-lg" 
+                     placeholder="SALE-20251224-0001"
+                     autofocus>
+              <button id="search-btn" class="btn btn-primary join-item">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                ค้นหา
+              </button>
+            </div>
+            <label class="label">
+              <span class="label-text-alt">💡 กด Enter เพื่อค้นหา</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {# STEP 2-6: ซ่อนจนกว่าจะค้นหาเจอ #}
+      <div id="step-container" class="hidden">
+        
+        {# STEP 2: ข้อมูลบิล #}
+        <div class="alert alert-success shadow-lg mb-6 fade-in">
+          <div class="flex items-center gap-4 w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div class="flex-1">
+              <h3 class="font-bold text-xl">✅ พบบิล: <span id="found-doc-no" class="font-mono"></span></h3>
+              <div class="grid grid-cols-3 gap-4 mt-2">
+                <div>📅 <span id="found-date"></span></div>
+                <div>💰 <span id="found-total"></span> ฿</div>
+                <div>👤 <span id="found-staff"></span></div>
+              </div>
+            </div>
+            <button onclick="clearSearch()" class="btn btn-ghost btn-sm">ค้นหาใหม่</button>
+          </div>
+        </div>
+
+        {# STEP 3: เลือกสินค้าที่คืน #}
+        <div class="card bg-white shadow-xl mb-6 step-box">
+          <div class="card-body">
+            <h2 class="card-title text-xl">
+              <span class="badge badge-lg badge-info">2</span>
+              📦 เลือกสินค้าที่จะคืน
+            </h2>
+            
+            <div class="overflow-x-auto mt-4">
+              <table class="table table-zebra table-sm">
+                <thead class="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                  <tr>
+                    <th class="w-8">#</th>
+                    <th>SKU</th>
+                    <th>สินค้า</th>
+                    <th class="text-center">ขายไป</th>
+                    <th class="text-center">คืนแล้ว</th>
+                    <th class="text-center">เหลือคืนได้</th>
+                    <th class="text-center">คืน</th>
+                    <th class="text-right">ราคา</th>
+                    <th class="text-right">รวม</th>
+                  </tr>
+                </thead>
+                <tbody id="items-list">
+                  <tr>
+                    <td colspan="9" class="text-center py-8">
+                      <div class="loading loading-spinner loading-lg text-primary"></div>
+                      <div class="mt-2 text-gray-500">กำลังโหลดรายการสินค้า...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {# STEP 4: รายการที่เลือกคืน #}
+        <div class="card bg-gradient-to-br from-blue-50 to-purple-50 shadow-xl mb-6 step-box">
+          <div class="card-body">
+            <h2 class="card-title text-xl">
+              <span class="badge badge-lg badge-secondary">3</span>
+              🛒 รายการที่เลือกคืน
+            </h2>
+            
+            <div id="return-cart-empty" class="text-center py-8">
+              <div class="text-6xl mb-2 opacity-20">🛒</div>
+              <div class="text-gray-500">ยังไม่ได้เลือกสินค้าที่จะคืน</div>
+            </div>
+            
+            <div id="return-cart" class="hidden">
+              <div class="overflow-x-auto">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>SKU</th>
+                      <th>สินค้า</th>
+                      <th class="text-center">จำนวน</th>
+                      <th class="text-right">ราคา</th>
+                      <th class="text-right">รวม</th>
+                    </tr>
+                  </thead>
+                  <tbody id="return-cart-items"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# STEP 5: เหตุผล + วิธีคืนเงิน #}
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          
+          {# เหตุผล #}
+          <div class="card bg-white shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title text-xl">
+                <span class="badge badge-lg badge-info">4</span>
+                📝 เหตุผลการคืน
+              </h2>
+              
+              <div class="space-y-2 mt-4">
+                <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-200 cursor-pointer">
+                  <input type="radio" name="reason" value="damaged" class="radio radio-primary" checked>
+                  <span class="flex-1">🔧 สินค้าชำรุด/เสียหาย</span>
+                </label>
+                
+                <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-200 cursor-pointer">
+                  <input type="radio" name="reason" value="change_mind" class="radio radio-primary">
+                  <span class="flex-1">🔄 ลูกค้าเปลี่ยนใจ</span>
+                </label>
+                
+                <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-200 cursor-pointer">
+                  <input type="radio" name="reason" value="wrong_item" class="radio radio-primary">
+                  <span class="flex-1">❌ สั่งผิด/ส่งผิด</span>
+                </label>
+                
+                <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-200 cursor-pointer">
+                  <input type="radio" name="reason" value="other" class="radio radio-primary">
+                  <span class="flex-1">📄 อื่นๆ</span>
+                </label>
+              </div>
+              
+              <textarea id="reason-note" 
+                        class="textarea textarea-bordered mt-3" 
+                        placeholder="หมายเหตุเพิ่มเติม..."
+                        rows="3"></textarea>
+            </div>
+          </div>
+
+          {# วิธีคืนเงิน #}
+          <div class="card bg-white shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title text-xl">
+                <span class="badge badge-lg badge-success">5</span>
+                💳 วิธีคืนเงิน
+              </h2>
+              
+              <div class="space-y-3 mt-4">
+                <label class="flex items-center gap-3 p-4 rounded-lg hover:bg-base-200 cursor-pointer border-2 border-transparent hover:border-primary">
+                  <input type="radio" name="refund_method" value="cash" class="radio radio-success" checked>
+                  <div class="flex-1">
+                    <div class="font-semibold text-lg">💵 เงินสด</div>
+                    <div class="text-xs text-gray-500">คืนเงินทันที</div>
+                  </div>
+                </label>
+              </div>
+            
+            </div>
+          </div>
+        </div>
+
+        {# STEP 6: สรุปยอด + ปุ่ม #}
+        <div class="card bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-2xl">
+          <div class="card-body">
+            <div class="grid md:grid-cols-2 gap-8">
+              
+              <div>
+                <h2 class="text-3xl font-bold mb-6">💰 สรุปยอดคืน</h2>
+                
+                <div class="space-y-4">
+                  <div class="flex justify-between text-lg">
+                    <span>รายการที่คืน:</span>
+                    <span class="font-bold" id="summary-items">0 รายการ</span>
+                  </div>
+                  
+                  <div class="flex justify-between text-lg">
+                    <span>จำนวนรวม:</span>
+                    <span class="font-bold" id="summary-qty">0 ชิ้น</span>
+                  </div>
+                  
+                  <div class="divider my-3 opacity-30"></div>
+                  
+                  <div class="flex justify-between text-2xl">
+                    <span>ยอดรวม:</span>
+                    <span class="font-bold" id="summary-subtotal">0.00 ฿</span>
+                  </div>
+                  
+                  <div class="flex justify-between items-center text-lg">
+                    <span>ส่วนลดคืน:</span>
+                    <input type="number" 
+                           id="discount-return"
+                           class="input input-sm w-32 text-right text-gray-800 font-mono" 
+                           value="0" 
+                           min="0" 
+                           step="0.01"
+                           onchange="updateSummary()">
+                  </div>
+                  
+                  <div class="divider my-3 opacity-30"></div>
+                  
+                  <div class="flex justify-between text-4xl font-bold">
+                    <span>ยอดคืน:</span>
+                    <span id="summary-total" class="text-yellow-300">0.00 ฿</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-col justify-center gap-4">
+                <button id="process-return-btn" 
+                        class="btn btn-success btn-lg w-full text-white gap-2 shadow-xl"
+                        disabled>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="text-xl">💸 ยืนยันคืนเงิน</span>
+                </button>
+                
+                <button onclick="clearReturn()" class="btn btn-outline btn-lg w-full border-2 border-white text-white hover:bg-white hover:text-error">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  ล้างรายการ
+                </button>
+                
+                <div class="alert alert-warning mt-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div class="text-sm">
+                    <p>⚠️ เมื่อกดยืนยัน:</p>
+                    <p>• สต็อกจะเพิ่มกลับทันที</p>
+                    <p>• ไม่สามารถยกเลิกได้</p>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+const RETURN_DOC_NO = '{{ doc_no }}';
+
+let originalSale = null;
+let saleItems = [];
+let returnItems = [];
+
+// ค้นหาบิล
+document.getElementById('search-sale').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') searchSale();
+});
+
+document.getElementById('search-btn').addEventListener('click', searchSale);
+
+async function searchSale() {
+  const query = document.getElementById('search-sale').value.trim();
+  
+  if (query.length < 3) {
+    alert('กรุณากรอกอย่างน้อย 3 ตัวอักษร');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/returns/search/?q=${encodeURIComponent(query)}`);
+    const data = await response.json();
+    
+    if (!data.success) {
+      alert(data.error || 'ไม่พบบิล');
+      return;
+    }
+    
+    originalSale = data.sale;
+    saleItems = data.sale.items;
+    
+    displaySaleInfo();
+    renderItemsTable();
+    
+    document.getElementById('step-container').classList.remove('hidden');
+    document.getElementById('step-container').scrollIntoView({ behavior: 'smooth' });
+    
+  } catch (error) {
+    console.error(error);
+    alert('เกิดข้อผิดพลาด: ' + error.message);
+  }
+}
+
+function displaySaleInfo() {
+  document.getElementById('found-doc-no').textContent = originalSale.doc_no;
+  document.getElementById('found-date').textContent = originalSale.sale_date;
+  document.getElementById('found-total').textContent = originalSale.grand_total.toLocaleString();
+  document.getElementById('found-staff').textContent = originalSale.created_by;
+}
+
+function renderItemsTable() {
+  const tbody = document.getElementById('items-list');
+  tbody.innerHTML = '';
+  
+  saleItems.forEach((item, index) => {
+    const row = `
+      <tr class="hover">
+        <td>${index + 1}</td>
+        <td class="font-mono font-bold">${item.sku}</td>
+        <td>
+          <div class="font-semibold">${item.name}</div>
+          ${item.compatible_models ? `<div class="text-xs text-gray-500">🚗 ${item.compatible_models}</div>` : ''}
+        </td>
+        <td class="text-center">
+          <span class="badge badge-ghost">${item.original_quantity} ${item.unit}</span>
+        </td>
+        <td class="text-center">
+          <span class="badge badge-error">${item.already_returned || 0}</span>
+        </td>
+        <td class="text-center">
+          <span class="badge badge-success">${item.remaining_quantity}</span>
+        </td>
+        <td class="text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button class="btn btn-xs btn-circle btn-primary" onclick="changeQty(${index}, -1)">-</button>
+            <input type="number" 
+                   class="input input-xs w-16 text-center font-mono" 
+                   value="0"
+                   min="0"
+                   max="${item.remaining_quantity}"
+                   id="qty-${index}"
+                   onchange="updateQty(${index}, this.value)">
+            <button class="btn btn-xs btn-circle btn-primary" onclick="changeQty(${index}, 1)">+</button>
+          </div>
+        </td>
+        <td class="text-right">${item.unit_price.toFixed(2)}</td>
+        <td class="text-right">
+          <span class="font-bold text-primary" id="total-${index}">0.00</span>
+        </td>
+      </tr>
+    `;
+    tbody.innerHTML += row;
+  });
+}
+
+function changeQty(index, delta) {
+  const input = document.getElementById(`qty-${index}`);
+  const current = parseFloat(input.value) || 0;
+  const max = parseFloat(input.max);
+  const newVal = Math.max(0, Math.min(max, current + delta));
+  
+  input.value = newVal;
+  updateQty(index, newVal);
+}
+
+function updateQty(index, value) {
+  const qty = parseFloat(value) || 0;
+  const item = saleItems[index];
+  const lineTotal = qty * item.unit_price;
+  
+  document.getElementById(`total-${index}`).textContent = lineTotal.toFixed(2);
+  
+  updateSummary();
+}
+
+function updateSummary() {
+  returnItems = [];
+  let totalItems = 0;
+  let totalQty = 0;
+  let subtotal = 0;
+  
+  saleItems.forEach((item, index) => {
+    const qty = parseFloat(document.getElementById(`qty-${index}`).value) || 0;
+    
+    if (qty > 0) {
+      returnItems.push({
+        product_id: item.product_id,
+        quantity: qty
+      });
+      
+      totalItems++;
+      totalQty += qty;
+      subtotal += qty * item.unit_price;
+    }
+  });
+  
+  const discount = parseFloat(document.getElementById('discount-return').value) || 0;
+  const grandTotal = subtotal - discount;
+  
+  document.getElementById('summary-items').textContent = `${totalItems} รายการ`;
+  document.getElementById('summary-qty').textContent = `${totalQty} ชิ้น`;
+  document.getElementById('summary-subtotal').textContent = subtotal.toFixed(2) + ' ฿';
+  document.getElementById('summary-total').textContent = grandTotal.toFixed(2) + ' ฿';
+  
+  // อัพเดทตะกร้า
+  if (totalItems > 0) {
+    renderCart();
+    document.getElementById('return-cart-empty').classList.add('hidden');
+    document.getElementById('return-cart').classList.remove('hidden');
+    document.getElementById('process-return-btn').disabled = false;
+    document.getElementById('process-return-btn').classList.add('btn-pulse');
+  } else {
+    document.getElementById('return-cart-empty').classList.remove('hidden');
+    document.getElementById('return-cart').classList.add('hidden');
+    document.getElementById('process-return-btn').disabled = true;
+    document.getElementById('process-return-btn').classList.remove('btn-pulse');
+  }
+}
+
+function renderCart() {
+  const tbody = document.getElementById('return-cart-items');
+  tbody.innerHTML = '';
+  
+  let num = 1;
+  saleItems.forEach((item, index) => {
+    const qty = parseFloat(document.getElementById(`qty-${index}`).value) || 0;
+    
+    if (qty > 0) {
+      const lineTotal = qty * item.unit_price;
+      
+      tbody.innerHTML += `
+        <tr>
+          <td>${num++}</td>
+          <td class="font-mono">${item.sku}</td>
+          <td>${item.name}</td>
+          <td class="text-center">${qty} ${item.unit}</td>
+          <td class="text-right">${item.unit_price.toFixed(2)}</td>
+          <td class="text-right font-bold">${lineTotal.toFixed(2)}</td>
+        </tr>
+      `;
+    }
+  });
+}
+
+// แสดง/ซ่อนบัญชี
+document.querySelectorAll('input[name="refund_method"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const bankInfo = document.getElementById('bank-info');
+    bankInfo.classList.toggle('hidden', this.value !== 'transfer');
+  });
+});
+
+// ยืนยันคืนเงิน
+document.getElementById('process-return-btn').addEventListener('click', async function() {
+  if (returnItems.length === 0) {
+    alert('กรุณาเลือกสินค้าที่จะคืน');
+    return;
+  }
+  
+  if (!confirm('ยืนยันการคืนสินค้า?\n\n• สต็อกจะเพิ่มกลับทันที\n• เงินจะถูกคืนให้ลูกค้า\n• ไม่สามารถยกเลิกได้')) {
+    return;
+  }
+  
+  const reason = document.querySelector('input[name="reason"]:checked').value;
+  const note = document.getElementById('reason-note').value;
+  const refundMethod = document.querySelector('input[name="refund_method"]:checked').value;
+  const discount = parseFloat(document.getElementById('discount-return').value) || 0;
+  
+  const payload = {
+    doc_no: RETURN_DOC_NO,
+    ref_doc_no: originalSale.doc_no,
+    items: returnItems,
+    return_reason: reason,
+    return_note: note,
+    refund_method: refundMethod,
+    discount_return: discount
+  };
+  
+  try {
+    this.disabled = true;
+    this.innerHTML = '<span class="loading loading-spinner"></span> กำลังบันทึก...';
+    
+    const response = await fetch('/returns/create/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert('✅ รับคืนสินค้าสำเร็จ!');
+      window.location.href = data.redirect_url;
+    } else {
+      alert('❌ ' + (data.error || 'เกิดข้อผิดพลาด'));
+      this.disabled = false;
+      this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="text-xl">💸 ยืนยันคืนเงิน</span>';
+    }
+    
+  } catch (error) {
+    console.error(error);
+    alert('❌ เกิดข้อผิดพลาด: ' + error.message);
+    this.disabled = false;
+    this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="text-xl">💸 ยืนยันคืนเงิน</span>';
+  }
+});
+
+function clearSearch() {
+  document.getElementById('step-container').classList.add('hidden');
+  document.getElementById('search-sale').value = '';
+  document.getElementById('search-sale').focus();
+  originalSale = null;
+  saleItems = [];
+  returnItems = [];
+}
+
+function clearReturn() {
+  if (!confirm('ล้างรายการคืนทั้งหมด?')) return;
+  
+  saleItems.forEach((_, index) => {
+    document.getElementById(`qty-${index}`).value = 0;
+    document.getElementById(`total-${index}`).textContent = '0.00';
+  });
+  
+  document.getElementById('discount-return').value = 0;
+  returnItems = [];
+  updateSummary();
+}
+</script>
+
+</body>
+</html>

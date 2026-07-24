@@ -1,0 +1,108 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ตั้งค่าบิล/ใบเสร็จ</title>
+  {% tailwind_css %}
+  <style>
+    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f3f4f6; }
+  </style>
+</head>
+<body class="text-gray-800">
+<div class="flex min-h-screen">
+
+  {% include "partials/sidebar.html" %}
+
+  <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+    <div class="max-w-[900px] mx-auto space-y-8">
+
+      {# ========== 1. Header ========== #}
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">ตั้งค่าบิล/ใบเสร็จ</h1>
+        <p class="text-gray-500 mt-1 text-base">จัดการรูปแบบและข้อมูลที่แสดงบนใบเสร็จ</p>
+      </div>
+
+      {# Messages #}
+      {% include "partials/messages.html" %}
+
+      {# ========== 2. Form ========== #}
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+
+          {# Section: ข้อมูลร้านค้า #}
+          <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">📋 ข้อมูลร้านค้า</h2>
+          </div>
+
+          <div class="p-6 space-y-5">
+            {% for field in fields %}
+              {% if field.key == 'store_name' or field.key == 'store_phone' or field.key == 'store_address' %}
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                  {{ field.label }}
+                  {% if field.key == 'store_name' %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                {% if field.type == 'textarea' %}
+                  <textarea name="{{ field.key }}" id="{{ field.key }}"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows="2"
+                            placeholder="{{ field.placeholder }}">{{ field.value }}</textarea>
+                {% else %}
+                  <input type="text" name="{{ field.key }}" id="{{ field.key }}"
+                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                         placeholder="{{ field.placeholder }}"
+                         value="{{ field.value }}"
+                         {% if field.key == 'store_name' %}required{% endif %}>
+                {% endif %}
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="p-6 space-y-5">
+            {% for field in fields %}
+              {% if field.key == 'receipt_footer' %}
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ field.label }}</label>
+                <input type="text" name="{{ field.key }}" id="{{ field.key }}"
+                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="{{ field.placeholder }}"
+                       value="{{ field.value }}">
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <div class="p-6 space-y-4">
+            {% for field in fields %}
+              {% if field.type == 'checkbox' %}
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="{{ field.key }}" 
+                       class="checkbox checkbox-primary"
+                       {% if field.checked %}checked{% endif %}>
+                <span class="text-sm font-medium text-gray-700">{{ field.label }}</span>
+              </label>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          {# Buttons #}
+          <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex gap-3">
+            <button type="submit" class="btn btn-primary px-8">
+              💾 บันทึกการตั้งค่า
+            </button>
+          </div>
+
+        </div>
+      </form>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,77 @@
+{% load tailwind_tags %}
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หมวดหมู่สินค้า</title>
+    {% tailwind_css %}
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 p-10">
+
+    <div class="max-w-5xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-700">📂 หมวดหมู่สินค้า (Categories)</h1>
+            <button class="btn btn-primary btn-sm">+ เพิ่มหมวดหมู่</button>
+        </div>
+
+        <div class="overflow-x-auto bg-white shadow-md rounded-lg border border-gray-200">
+            <table class="table w-full">
+                <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+                    <tr>
+                        <th class="w-24 text-center">รหัส (Code)</th>
+                        <th>ชื่อหมวดหมู่ (TH / EN)</th>
+                        <th>รายละเอียด</th>
+                        <th class="text-center w-20">จัดการ</th>
+                    </tr>
+                </thead>
+                
+                <tbody>
+                    {% for category in categories %}
+                    <tr class="hover:bg-blue-50 transition">
+                        
+                        <td class="text-center">
+                            <span class="badge badge-primary badge-outline font-mono font-bold">
+                                {{ category.code }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <div class="font-bold text-gray-800 text-base">
+                                {{ category.name }}
+                            </div>
+                            {% if category.name_en %}
+                            <div class="text-xs text-gray-400 uppercase tracking-wide">
+                                {{ category.name_en }}
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <p class="text-gray-500 text-sm truncate max-w-xs">
+                                {{ category.description|default:"-" }}
+                            </p>
+                        </td>
+
+                        <td class="text-center">
+                            <div class="flex justify-center gap-2">
+                                <button class="btn btn-xs btn-ghost text-amber-500 hover:bg-amber-50">✏️</button>
+                                <button class="btn btn-xs btn-ghost text-red-500 hover:bg-red-50">🗑️</button>
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-10 text-gray-400">
+                            ไม่พบข้อมูลหมวดหมู่
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

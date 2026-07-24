@@ -1,0 +1,143 @@
+<!-- Modal ชำระเงิน - โอนเงิน -->
+<dialog id="payment-transfer-modal" class="modal">
+  <div class="modal-box max-w-2xl">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-2xl font-bold">💰 ชำระเงิน (โอนเงิน)</h3>
+      <button class="btn btn-sm btn-circle btn-ghost" onclick="closeTransferModal()">✕</button>
+    </div>
+    
+    <!-- Content -->
+    <div class="space-y-6">
+      
+      <!-- ยอดชำระ -->
+      <div class="text-center bg-primary/10 p-4 rounded-lg">
+        <p class="text-gray-600 text-sm">ยอดที่ต้องชำระ</p>
+        <p class="text-5xl font-bold text-primary" id="modal-transfer-total">0.00 ฿</p>
+      </div>
+      
+      <!-- ข้อมูลบัญชี -->
+      <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="text-5xl">🏦</div>
+          <div>
+            <h4 class="font-bold text-xl">ธนาคารกสิกรไทย</h4>
+            <p class="text-sm text-gray-600">Kasikorn Bank</p>
+          </div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="space-y-3">
+          <div class="flex justify-between items-center bg-white p-3 rounded">
+            <span class="text-gray-600">เลขที่บัญชี:</span>
+            <span class="font-mono font-bold text-xl">053-3-48115-9</span>
+          </div>
+          
+          <div class="flex justify-between items-center bg-white p-3 rounded">
+            <span class="text-gray-600">ชื่อบัญชี:</span>
+            <span class="font-bold">ศุภมงคล ไชยสุวรรณ</span>
+          </div>
+          
+          <div class="flex justify-between items-center bg-white p-3 rounded">
+            <span class="text-gray-600">จำนวนเงิน:</span>
+            <span class="font-bold text-xl text-primary" id="modal-transfer-amount">0.00 บาท</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- คำแนะนำ -->
+      <div class="alert alert-warning">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+          <h3 class="font-bold">สำคัญ!</h3>
+          <div class="text-sm">
+            โปรดระบุเลขที่บิลในหมายเหตุการโอน:<br>
+            <span class="font-mono font-bold text-base" id="modal-transfer-doc-no">-</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Checkbox ยืนยัน -->
+      <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-4">
+          <input type="checkbox" id="modal-transfer-confirm" class="checkbox checkbox-lg checkbox-success" />
+          <span class="label-text text-lg">✅ ลูกค้าโอนเงินแล้ว (ตรวจสอบสลิปแล้ว)</span>
+        </label>
+      </div>
+      
+    </div>
+    
+    <!-- Footer -->
+    <div class="modal-action">
+      <button class="btn btn-lg btn-outline" onclick="closeTransferModal()">ยกเลิก</button>
+      <button class="btn btn-success btn-lg" onclick="confirmTransferPayment()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        ยืนยันการชำระเงิน
+      </button>
+    </div>
+    
+  </div>
+  
+  <!-- Background Overlay -->
+  <form method="dialog" class="modal-backdrop">
+    <button>ปิด</button>
+  </form>
+</dialog>
+
+<script>
+// ===================================
+// Modal โอนเงิน - Functions
+// ===================================
+
+function openTransferModal() {
+  // ดึงยอดชำระจากหน้าหลัก
+  const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace(' ฿', '')) || 0;
+  const docNo = document.getElementById('doc-no').textContent;
+  
+  // แสดงใน Modal
+  document.getElementById('modal-transfer-total').textContent = grandTotal.toFixed(2) + ' ฿';
+  document.getElementById('modal-transfer-amount').textContent = grandTotal.toFixed(2) + ' บาท';
+  document.getElementById('modal-transfer-doc-no').textContent = docNo;
+  
+  // รีเซ็ต Checkbox
+  document.getElementById('modal-transfer-confirm').checked = false;
+  
+  // เปิด Modal
+  document.getElementById('payment-transfer-modal').showModal();
+}
+
+function closeTransferModal() {
+  document.getElementById('payment-transfer-modal').close();
+}
+
+function confirmTransferPayment() {
+  const confirmed = document.getElementById('modal-transfer-confirm').checked;
+  
+  if (!confirmed) {
+    alert('⚠️ กรุณายืนยันว่าลูกค้าโอนเงินแล้ว');
+    return;
+  }
+  
+  const totalText = document.getElementById('modal-transfer-total').textContent.replace(' ฿', '');
+  const grandTotal = parseFloat(totalText) || 0;
+  
+  // เก็บข้อมูลการชำระเงิน
+  window.paymentData = {
+    method: 'transfer',
+    received: grandTotal,
+    change: 0
+  };
+  
+  // ปิด Modal
+  closeTransferModal();
+  
+  // บันทึกบิล
+  saveSaleWithPayment();
+}
+</script>

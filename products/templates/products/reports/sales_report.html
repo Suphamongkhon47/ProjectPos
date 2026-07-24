@@ -1,0 +1,427 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>💰 รายงานการขายสินค้า</title>
+  {% tailwind_css %}
+  <style>
+    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    
+    /* Clean Table Style */
+    .table-clean th { 
+      background-color: #f9fafb; 
+      color: #6b7280; 
+      font-weight: 600; 
+      text-transform: uppercase; 
+      font-size: 0.8rem; 
+      letter-spacing: 0.05em; 
+      border-bottom: 1px solid #e5e7eb; 
+      padding: 1rem;
+      white-space: nowrap;
+    }
+    .table-clean td { 
+      border-bottom: 1px solid #f3f4f6; 
+      padding: 1rem; 
+      font-size: 0.95rem; 
+      vertical-align: middle;
+    }
+    
+    /* Card Effect */
+    .stat-card { transition: all 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="text-gray-800">
+
+<div class="flex min-h-screen">
+
+  {# ========== Sidebar ========== #}
+  {% include "partials/sidebar.html" %}
+
+  {# ========== Main Content ========== #}
+  <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+    <div class="max-w-[1920px] mx-auto space-y-8">
+      
+      {# Header #}
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">รายงานการขายสินค้า</h1>
+          <p class="text-gray-500 mt-1 text-base">ตรวจสอบรายการขาย ยอดขาย และกำไร</p>
+        </div>
+      </div>
+
+      {# Messages #}
+      {% include "partials/messages.html" %}
+
+      {# ========== สถิติ (5 Cards Grid) ========== #}
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        
+        {# Card 1: บิลทั้งหมด #}
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">บิลทั้งหมด</p>
+              <h3 class="text-2xl font-bold text-gray-900 mt-0.5">{{ summary.total_bills|default:0|intcomma }}</h3>
+              <p class="text-xs text-gray-400">ฉบับ</p>
+            </div>
+          </div>
+        </div>
+
+        {# Card 2: ยอดขายรวม #}
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">ยอดขายสุทธิ</p>
+              <h3 class="text-2xl font-bold text-indigo-600 mt-0.5">{{ summary.total_grand|default:0|floatformat:2|intcomma }}</h3>
+              <p class="text-xs text-gray-400">บาท</p>
+            </div>
+          </div>
+        </div>
+
+        {# Card 3: กำไรขั้นต้น #}
+        {% if user.is_superuser %}
+          <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 stat-card">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">กำไรขั้นต้น</p>
+                <h3 class="text-2xl font-bold text-green-600 mt-0.5">{{ summary.total_profit|default:0|floatformat:2|intcomma }}</h3>
+                <p class="text-xs text-gray-400">บาท</p>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {# Card 4: ส่วนลดรวม #}
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">ส่วนลด</p>
+              <h3 class="text-2xl font-bold text-orange-500 mt-0.5">{{ summary.total_discount|default:0|floatformat:2|intcomma }}</h3>
+              <p class="text-xs text-gray-400">บาท</p>
+            </div>
+          </div>
+        </div>
+
+        {# Card 5: ยอดก่อนส่วนลด #}
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">ก่อนหักส่วนลด</p>
+              <h3 class="text-2xl font-bold text-gray-600 mt-0.5">{{ summary.total_amount|default:0|floatformat:2|intcomma }}</h3>
+              <p class="text-xs text-gray-400">บาท</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {# ========== ค้นหาและกรอง ========== #}
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+          <form method="get" class="flex flex-col lg:flex-row gap-4 items-end lg:items-center flex-wrap">
+            
+            {# Date Range #}
+            <div class="flex items-center bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm gap-2 w-full lg:w-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <input type="date" name="date_from" class="outline-none text-sm text-gray-600 cursor-pointer bg-transparent" 
+                     value="{{ date_from }}" title="ตั้งแต่วันที่">
+              <span class="text-gray-400">-</span>
+              <input type="date" name="date_to" class="outline-none text-sm text-gray-600 cursor-pointer bg-transparent" 
+                     value="{{ date_to }}" title="ถึงวันที่">
+            </div>
+
+            {# Search #}
+            <div class="flex-1 w-full relative min-w-[200px]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" name="search_doc_no" class="input input-bordered w-full pl-10 bg-white" 
+                     placeholder="ค้นหารหัสบิล..." value="{{ search_doc_no }}">
+            </div>
+            <select name="category" class="select select-bordered bg-white w-full lg:w-48">
+              <option value="">📂 หมวดหมู่</option>
+              {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>
+                  {{ cat.name }}
+                </option>
+              {% endfor %}
+            </select>
+            {# Payment Filter #}
+            <select name="payment_method" class="select select-bordered bg-white w-full lg:w-40">
+              <option value="">💳 ทุกวิธีชำระ</option>
+              {% for method in payment_methods %}
+              <option value="{{ method.value }}" {% if payment_method == method.value %}selected{% endif %}>
+                {{ method.label }}
+              </option>
+              {% endfor %}
+            </select>
+
+            {# Status Filter #}
+            <select name="status" class="select select-bordered bg-white w-full lg:w-36">
+              <option value="">📌 ทุกสถานะ</option>
+              <option value="HOLD" {% if status == 'HOLD' %}selected{% endif %}>📝 HOLD</option>
+              <option value="POSTED" {% if status == 'POSTED' %}selected{% endif %}>✅ Posted</option>
+              <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>❌ Cancelled</option>
+            </select>
+
+            {# User Filter (Admin Only) #}
+            {% if request.user.is_superuser %}
+            <select name="user_id" class="select select-bordered bg-white w-full lg:w-40">
+              <option value="">👤 ทุกพนักงาน</option>
+              {% for u in users %}
+              <option value="{{ u.id }}" {% if selected_user_id == u.id|stringformat:"s" %}selected{% endif %}>
+                {{ u.username }}
+              </option>
+              {% endfor %}
+            </select>
+            {% endif %}
+
+            <div class="flex gap-2">
+              <button type="submit" class="btn btn-primary px-6">ค้นหา</button>
+              <a href="?" class="btn btn-ghost text-gray-500">ล้างค่า</a>
+            </div>
+          </form>
+        </div>
+
+        {# Table #}
+        <div class="overflow-x-auto">
+          <table class="table table-clean w-full">
+            <thead>
+              <tr>
+                <th class="w-16 text-center">#</th>
+                <th>รหัสบิล</th>
+                <th>วันที่ขาย</th>
+                <th class="text-center">การชำระเงิน</th>
+                <th class="text-right">ยอดบิล</th>
+                
+                {# ✅ 1. เพิ่มหัวตารางกำไร (เฉพาะ Admin/Owner) #}
+                {% if request.user.is_superuser %}
+                <th class="text-right text-green-700 bg-green-50/50 border-b-green-200">กำไร</th>
+                {% endif %}
+                
+                <th class="text-right">ส่วนลด</th>
+                <th class="text-right">รับเงิน</th>
+                <th class="text-right">ทอนเงิน</th>
+                <th class="text-center">สถานะ</th>
+                <th>ผู้บันทึก</th>
+                <th class="text-center w-24">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in sales %}
+              <tr class="group hover:bg-gray-50 transition-colors">
+                <td class="text-center text-gray-400 font-mono text-sm">{{ forloop.counter }}</td>
+                
+                <td>
+                  <span class="font-bold text-gray-800 text-sm font-mono">{{ item.sale.doc_no }}</span>
+                </td>
+                
+                <td>
+                  <span class="text-sm text-gray-600">{{ item.sale.transaction_date|date:"d/m/Y H:i" }}</span>
+                </td>
+                
+                <td class="text-center">
+                  {% if item.payment %}
+                    {% if item.payment.method == 'cash' %}
+                      <div class="badge badge-success gap-1 text-white py-2 px-3 border-0 shadow-sm">💵 เงินสด</div>
+                    {% elif item.payment.method == 'qr' %}
+                      <div class="badge badge-info gap-1 text-white py-2 px-5 border-0 shadow-sm whitespace-nowrap">📱 QR Code</div>
+                    {% elif item.payment.method == 'transfer' %}
+                      <div class="badge badge-warning gap-1 text-white py-2 px-3 border-0 shadow-sm">🏦โอนเงิน</div>
+                    {% else %}
+                      <span class="badge badge-ghost">{{ item.payment.method }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-gray-300">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-right">
+                  <span class="font-bold text-gray-800">{{ item.sale.grand_total|default:0|floatformat:2|intcomma }}</span>
+                </td>
+                
+                {# ✅ 2. เพิ่มข้อมูลกำไรต่อบิล (เฉพาะ Admin/Owner) #}
+                {% if request.user.is_superuser %}
+                <td class="text-right bg-green-50/30 font-mono">
+                    {% if item.profit > 0 %}
+                        <span class="text-green-600 font-bold">+{{ item.profit|floatformat:2|intcomma }}</span>
+                    {% elif item.profit < 0 %}
+                        <span class="text-red-500 font-bold">{{ item.profit|floatformat:2|intcomma }}</span>
+                    {% else %}
+                        <span class="text-gray-400">-</span>
+                    {% endif %}
+                    
+                    {# แสดง % Margin ตัวเล็กๆ ด้านล่าง #}
+                    {% if item.sale.grand_total > 0 %}
+                    <div class="text-[10px] text-gray-400">
+                        ({% widthratio item.profit item.sale.grand_total 100 %}%)
+                    </div>
+                    {% endif %}
+                </td>
+                {% endif %}
+                
+                <td class="text-right">
+                  {% if item.sale.discount_amount > 0 %}
+                    <span class="text-orange-600 text-sm">-{{ item.sale.discount_amount|floatformat:2 }}</span>
+                  {% else %}
+                    <span class="text-gray-300 text-sm">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-right">
+                  {% if item.payment and item.payment.method == 'cash' %}
+                    <span class="text-blue-600 text-sm">{{ item.payment.received|floatformat:2 }}</span>
+                  {% else %}
+                    <span class="text-gray-300 text-sm">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-right">
+                  {% if item.payment and item.payment.method == 'cash' %}
+                    <span class="text-purple-600 text-sm font-medium">{{ item.payment.change|floatformat:2 }}</span>
+                  {% else %}
+                    <span class="text-gray-300 text-sm">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-center">
+                  {% if item.sale.status == 'HOLD' or item.sale.status == 'HOLD' %}
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded">📝 HOLD</span>
+                  {% elif item.sale.status == 'POSTED' %}
+                    <span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">✅ Posted</span>
+                  {% elif item.sale.status == 'CANCELLED' %}
+                    <span class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded">❌ Cancelled</span>
+                  {% endif %}
+                </td>
+                
+                <td>
+                  <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                        {{ item.sale.created_by.username|slice:":1"|upper }}
+                      </div>
+                      <span class="text-sm text-gray-500">{{ item.sale.created_by.username }}</span>
+                  </div>
+                </td>
+                
+                <td class="text-center">
+                  <div class="flex justify-center gap-1">
+                    <a href="{% url 'print_receipt' item.sale.id %}?source=report"
+                       onclick="viewBill(this.href); return false;"
+                       class="btn btn-sm btn-ghost btn-square text-gray-500 hover:text-blue-600 tooltip" data-tip="ดูบิล">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </a>
+                    
+                    {% if item.sale.status == 'POSTED' %}
+                    <button onclick="confirmCancel('{{ item.sale.doc_no }}', '{{ item.sale.id }}')"
+                            class="btn btn-sm btn-ghost btn-square text-gray-400 hover:text-red-600 tooltip" data-tip="ยกเลิก">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="12" class="text-center py-16">
+                  <div class="flex flex-col items-center justify-center text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    <p class="text-base font-medium">ไม่พบบิลขายในช่วงเวลานี้</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        {# Pagination #}
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-gray-100 flex justify-center bg-gray-50/30">
+          <div class="join shadow-sm bg-white">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}&search_doc_no={{ search_doc_no }}&payment_method={{ payment_method }}&status={{ status }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&user_id={{ selected_user_id }}" 
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">«</a>
+            {% endif %}
+            
+            <button class="join-item btn btn-md bg-white border-gray-200 no-animation font-normal text-gray-500 cursor-default">หน้า {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</button>
+            
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}&search_doc_no={{ search_doc_no }}&payment_method={{ payment_method }}&status={{ status }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&user_id={{ selected_user_id }}" 
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">»</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        
+      </div>
+      
+    </div>
+  </main>
+</div>
+
+{# Modal ดูบิล #}
+<dialog id="bill_modal" class="modal">
+  <div class="modal-box w-11/12 max-w-4xl h-[90vh] p-0 overflow-hidden relative bg-base-200">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-error absolute right-2 top-2 z-50 shadow-lg text-white border-white">✕</button>
+    </form>
+    <iframe id="receipt_frame" src="" class="w-full h-full border-none"></iframe>
+  </div>
+</dialog>
+
+<script>
+  function viewBill(url) {
+      const modal = document.getElementById('bill_modal');
+      const iframe = document.getElementById('receipt_frame');
+      iframe.src = url;
+      modal.showModal();
+  }
+
+  function confirmCancel(docNo, saleId) {
+    if (confirm('ต้องการยกเลิกบิล ' + docNo + ' ใช่หรือไม่?\n\nการยกเลิกจะไม่สามารถกู้คืนได้')) {
+        fetch(`/sales/api/${saleId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                window.location.reload();
+            } else {
+                alert('❌ เกิดข้อผิดพลาด: ' + (data.message || data.error));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        });
+    }
+  }
+</script>
+
+</body>
+</html>

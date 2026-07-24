@@ -1,0 +1,462 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>📊 รายงานแยกประเภทการขาย</title>
+  {% tailwind_css %}
+  <style>
+    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    
+    /* Clean Table Style */
+    .table-clean th { 
+      background-color: #f9fafb; 
+      color: #6b7280; 
+      font-weight: 600; 
+      text-transform: uppercase; 
+      font-size: 0.8rem; 
+      letter-spacing: 0.05em; 
+      border-bottom: 1px solid #e5e7eb; 
+      padding: 1rem;
+      white-space: nowrap;
+    }
+    .table-clean td { 
+      border-bottom: 1px solid #f3f4f6; 
+      padding: 1rem; 
+      font-size: 0.95rem; 
+      vertical-align: middle;
+    }
+    
+    /* Card Effect */
+    .stat-card { transition: all 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="text-gray-800">
+
+<div class="flex min-h-screen">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+  
+  {# Main Content #}
+  <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+    <div class="max-w-[1920px] mx-auto space-y-8">
+      
+      {# ========== 1. Header & Tabs ========== #}
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">รายงานยอดขาย</h1>
+          <p class="text-gray-500 mt-1 text-base">วิเคราะห์ข้อมูลแยกตามประเภทลูกค้า (ปลีก/ส่ง)</p>
+        </div>
+
+        {# Tabs เปลี่ยนประเภท #}
+        <div class="bg-white p-1 rounded-lg shadow-sm border border-gray-200 inline-flex">
+          <a href="?sale_type=all&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" 
+             class="px-4 py-2 rounded-md text-sm font-medium transition-all {% if sale_type == 'all' %}bg-gray-800 text-white shadow{% else %}text-gray-500 hover:bg-gray-50{% endif %}">
+             📋 ทั้งหมด
+          </a>
+          <a href="?sale_type=retail&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" 
+             class="px-4 py-2 rounded-md text-sm font-medium transition-all {% if sale_type == 'retail' %}bg-blue-600 text-white shadow{% else %}text-gray-500 hover:bg-gray-50{% endif %}">
+             🛍️ ขายปลีก
+          </a>
+          <a href="?sale_type=wholesale&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" 
+             class="px-4 py-2 rounded-md text-sm font-medium transition-all {% if sale_type == 'wholesale' %}bg-orange-500 text-white shadow{% else %}text-gray-500 hover:bg-gray-50{% endif %}">
+             🔧 ขายส่ง (ช่าง)
+          </a>
+        </div>
+      </div>
+      
+      {# Messages #}
+      {% include "partials/messages.html" %}
+
+      {# ========== 2. Key Metrics (4 Cards) ========== #}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        {# Card 1: ยอดขายรวม #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">ยอดขายรวม</p>
+              <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ summary.total_sales|default:0|floatformat:2|intcomma }}</h3>
+              <p class="text-sm text-gray-400">บาท (สุทธิ)</p>
+            </div>
+          </div>
+        </div>
+
+        {# Card 2: จำนวนบิล #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">จำนวนบิล</p>
+              <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ summary.count|default:0|intcomma }}</h3>
+              <p class="text-sm text-gray-400">ฉบับ</p>
+            </div>
+          </div>
+        </div>
+
+        {# ✅ Card 3: กำไรทั้งหมด (เปลี่ยนจากเฉลี่ยต่อบิล) #}
+        {% if user.is_superuser %}
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+              <div class="flex items-center gap-5">
+                  <div class="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                  </div>
+                  <div>
+                      <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">กำไรทั้งหมด</p>
+                      <h3 class="text-2xl font-bold text-emerald-600 mt-1">+{{ summary.total_profit|default:0|floatformat:2|intcomma }}</h3>
+                      <p class="text-sm text-gray-400">บาท</p>
+                  </div>
+              </div>
+          </div>
+      {% endif %}
+
+        {# Card 4: จำนวนสินค้า #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">จำนวนสินค้า</p>
+              <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ summary.total_quantity|default:0|floatformat:0|intcomma }}</h3>
+              <p class="text-sm text-gray-400">ชิ้น</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ========== 3. Insight Grid (Payment & Top Product) ========== #}
+      <div class="grid lg:grid-cols-3 gap-6">
+        
+        {# Payment Methods #}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="w-1 h-6 bg-blue-500 rounded-full"></span> 
+            ช่องทางชำระเงิน
+          </h3>
+          <div class="space-y-3">
+            {% for item in payment_summary %}
+            <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+              <div class="flex items-center gap-3">
+                {% if item.payment__method == 'cash' %}
+                  <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">💵</div>
+                  <span class="font-medium text-sm">เงินสด</span>
+                {% elif item.payment__method == 'qr' %}
+                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs">📱</div>
+                  <span class="font-medium text-sm">QR Code</span>
+                {% elif item.payment__method == 'transfer' %}
+                  <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-xs">🏦</div>
+                  <span class="font-medium text-sm">โอนเงิน</span>
+                {% else %}
+                  <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-xs">?</div>
+                  <span class="font-medium text-sm">{{ item.payment__method }}</span>
+                {% endif %}
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-gray-800 text-sm">{{ item.total|floatformat:0|intcomma }}</div>
+                <div class="text-xs text-gray-400">{{ item.count }} บิล</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Top Products #}
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="w-1 h-6 bg-orange-500 rounded-full"></span> 
+            10 สินค้าขายดี
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="table table-sm table-clean w-full">
+              <thead>
+                <tr>
+                  <th class="w-10 text-center">#</th>
+                  <th>สินค้า</th>
+                  <th class="text-right">จำนวน</th>
+                  <th class="text-right">ยอดรวม</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in top_products %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="text-center font-bold text-gray-400">{{ forloop.counter }}</td>
+                  <td>
+                    <div class="font-medium text-gray-900">{{ item.product__name|truncatechars:40 }}</div>
+                    <div class="text-xs text-gray-400 font-mono">{{ item.product__sku }}</div>
+                  </td>
+                  <td class="text-right font-medium">{{ item.total_qty|floatformat:0 }}</td>
+                  <td class="text-right text-gray-600">{{ item.total_amount|floatformat:2|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center py-4 text-gray-400">ไม่มีข้อมูล</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {# ========== 4. Main Data Table ========== #}
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        {# Filter Toolbar #}
+        <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+          <form method="get" class="flex flex-col lg:flex-row gap-4 items-center flex-wrap">
+            <input type="hidden" name="sale_type" value="{{ sale_type }}">
+            
+            {# Date Range #}
+            <div class="flex gap-2 w-full lg:w-auto">
+              <input type="date" name="date_from" class="input input-bordered bg-white" value="{{ date_from }}"> 
+              <span class="self-center text-gray-400 font-medium">-</span>
+              <input type="date" name="date_to" class="input input-bordered bg-white" value="{{ date_to }}">
+            </div>
+            {# Search #}
+            <div class="flex-1 w-full lg:min-w-[200px] relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" name="search" class="input input-bordered w-full pl-10 bg-white" 
+                     placeholder="ค้นหาเลขที่บิล, หมายเหตุ..." value="{{ search }}">
+            </div>
+
+            {# User Filter (Admin Only) #}
+            {% if request.user.is_superuser %}
+            <select name="user_id" class="select select-bordered bg-white w-full lg:w-40">
+              <option value="">👤 ทุกพนักงาน</option>
+              {% for u in users %}
+              <option value="{{ u.id }}" {% if selected_user_id == u.id|stringformat:"s" %}selected{% endif %}>
+                {{ u.username }}
+              </option>
+              {% endfor %}
+            </select>
+            {% endif %}
+
+            {# Payment Filter #}
+            <select name="payment_method" class="select select-bordered bg-white w-full lg:w-40">
+              <option value="">💳 ทุกการชำระ</option>
+              {% for method in payment_methods %}
+              <option value="{{ method.value }}" {% if payment_method == method.value %}selected{% endif %}>
+                {{ method.label }}
+              </option>
+              {% endfor %}
+            </select>
+
+            {# Status Filter #}
+            <select name="status" class="select select-bordered bg-white w-full lg:w-32">
+              <option value="">📌 ทุกสถานะ</option>
+              <option value="POSTED" {% if status == 'POSTED' %}selected{% endif %}>✅ สำเร็จ</option>
+              <option value="HOLD" {% if status == 'HOLD' %}selected{% endif %}>📝 HOLD</option>
+              <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>❌ ยกเลิก</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary px-6">ค้นหา</button>
+            <a href="?sale_type={{ sale_type }}" class="btn btn-ghost text-gray-500">ล้างค่า</a>
+          </form>
+        </div>
+
+        {# Table #}
+        <div class="overflow-x-auto">
+          <table class="table table-clean w-full">
+            <thead>
+              <tr>
+                <th class="w-16 text-center">#</th>
+                <th>เลขที่บิล / วันที่</th>
+                <th>พนักงาน</th>
+                <th class="text-center">ประเภท</th>
+                <th class="text-right">ยอดสุทธิ</th>
+                <th class="text-right">ส่วนลด</th>
+                <th class="text-right">รับเงิน</th>
+                <th class="text-right">ทอนเงิน</th>
+                <th class="text-center">สถานะ</th>
+                <th class="text-center w-24">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sale in sales %}
+              <tr class="group hover:bg-gray-50 transition-colors">
+                <td class="text-center text-gray-400 font-mono text-sm">{{ forloop.counter }}</td>
+                
+                <td>
+                  <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-gray-800 text-sm font-mono">{{ sale.doc_no }}</span>
+                    <span class="text-xs text-gray-500">{{ sale.transaction_date|date:"d M Y • H:i" }}</span>
+                  </div>
+                  {% if sale.remark %}
+                  <div class="mt-1 text-xs text-gray-400 italic truncate max-w-[200px]">Note: {{ sale.remark }}</div>
+                  {% endif %}
+                </td>
+                
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                      {{ sale.created_by.username|slice:":1"|upper }}
+                    </div>
+                    <span class="text-sm text-gray-500">{{ sale.created_by.username }}</span>
+                  </div>
+                </td>
+                
+                <td class="text-center">
+                  {% if sale.payment %}
+                    {% if sale.payment.method == 'cash' %}
+                      <span class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">เงินสด</span>
+                    {% elif sale.payment.method == 'qr' %}
+                      <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">QR</span>
+                    {% elif sale.payment.method == 'transfer' %}
+                      <span class="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">โอน</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-gray-300">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-right">
+                  <span class="font-bold text-gray-900">{{ sale.grand_total|default:0|floatformat:2|intcomma }}</span>
+                </td>
+
+                <td class="text-right">
+                  {% if sale.discount_amount > 0 %}
+                    <span class="text-orange-600 text-sm">-{{ sale.discount_amount|floatformat:2 }}</span>
+                  {% else %}
+                    <span class="text-gray-300 text-sm">-</span>
+                  {% endif %}
+                </td>
+
+                <td class="text-right">
+                  {% if sale.payment and sale.payment.method == 'cash' %}
+                    <span class="text-blue-600 text-sm">{{ sale.payment.received|floatformat:2 }}</span>
+                  {% else %}
+                    <span class="text-gray-300 text-sm">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-right">
+                  {% if sale.payment and sale.payment.method == 'cash' %}
+                    <span class="text-purple-600 text-sm font-medium">{{ sale.payment.change|floatformat:2 }}</span>
+                  {% else %}
+                    <span class="text-gray-300 text-sm">-</span>
+                  {% endif %}
+                </td>
+                
+                <td class="text-center">
+                  {% if sale.status == 'POSTED' %}
+                    <div class="badge badge-success gap-1 text-white py-2 px-3 border-0 shadow-sm">✅ Posted</div>
+                  {% elif sale.status == 'HOLD' %}
+                    <div class="badge badge-ghost gap-1 py-3 px-3">📝 HOLD</div>
+                  {% elif sale.status == 'CANCELLED' %}
+                    <div class="badge badge-error gap-1 text-white py-3 px-3">❌ Cancelled</div>
+                  {% endif %}
+                </td>
+                
+                <td class="text-center">
+                  <div class="flex justify-center gap-1">
+                    <a href="{% url 'print_receipt' sale.id %}?source=report" 
+                       onclick="viewBill(this.href); return false;"
+                       class="btn btn-sm btn-outline btn-warning gap-1 hover:shadow-md transition-all">
+                      ดูบิล
+                    </a>
+                    {% if user.is_owner %}
+                      {% if sale.status == 'POSTED' %}
+                      <button onclick="confirmCancel('{{ sale.doc_no }}', '{{ sale.id }}')"
+                              class="btn btn-sm btn-outline btn-error gap-1 hover:shadow-md transition-all">
+                        ยกเลิก
+                      </button>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" class="text-center py-16">
+                  <div class="flex flex-col items-center justify-center text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <p class="text-base font-medium">ไม่พบข้อมูลบิล</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        {# Pagination #}
+        {% if sales.has_other_pages %}
+        <div class="p-4 border-t border-gray-100 flex justify-center bg-gray-50/30">
+          <div class="join shadow-sm bg-white">
+            {% if sales.has_previous %}
+              <a href="?page={{ sales.previous_page_number }}&sale_type={{ sale_type }}&search={{ search }}&payment_method={{ payment_method }}&status={{ status }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&user_id={{ selected_user_id }}" 
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">«</a>
+            {% endif %}
+            
+            <button class="join-item btn btn-md bg-white border-gray-200 no-animation font-normal text-gray-500 cursor-default">หน้า {{ sales.number }} / {{ sales.paginator.num_pages }}</button>
+            
+            {% if sales.has_next %}
+              <a href="?page={{ sales.next_page_number }}&sale_type={{ sale_type }}&search={{ search }}&payment_method={{ payment_method }}&status={{ status }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&user_id={{ selected_user_id }}" 
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">»</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        
+      </div>
+      
+    </div>
+  </main>
+</div>
+
+{# Modal #}
+<dialog id="bill_modal" class="modal backdrop-blur-sm">
+  <div class="modal-box w-11/12 max-w-4xl h-[90vh] p-0 overflow-hidden relative bg-gray-100 shadow-2xl rounded-xl">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-50 bg-white shadow-md hover:bg-gray-100 text-gray-500">✕</button>
+    </form>
+    <iframe id="receipt_frame" src="" class="w-full h-full border-none"></iframe>
+  </div>
+</dialog>
+
+<script>
+  function viewBill(url) {
+    const modal = document.getElementById('bill_modal');
+    const iframe = document.getElementById('receipt_frame');
+    iframe.src = url;
+    modal.showModal();
+  }
+
+  function confirmCancel(docNo, saleId) {
+    if (confirm('ต้องการยกเลิกบิล ' + docNo + ' ใช่หรือไม่?\n\nการยกเลิกจะไม่สามารถกู้คืนได้')) {
+        fetch(`/sales/api/${saleId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                window.location.reload();
+            } else {
+                alert('❌ เกิดข้อผิดพลาด: ' + (data.message || data.error));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        });
+    }
+  }
+</script>
+
+</body>
+</html>

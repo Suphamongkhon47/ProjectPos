@@ -1,0 +1,4 @@
+{% load tailwind_tags %} {% tailwind_css %} {% block extra_css %}{% endblock %}
+{# ========== Sidebar ========== #} {% include "partials/sidebar.html" %} {# ========== Main Content ========== #}
+{# Messages #} {% include "partials/messages.html" %} {# Content #} {% block content %}{% endblock %}
+{% block extra_js %}{% endblock %}

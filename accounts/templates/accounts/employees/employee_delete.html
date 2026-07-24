@@ -1,0 +1,102 @@
+{% load tailwind_tags %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>🗑️ ลบพนักงาน</title>
+  {% tailwind_css %}
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100">
+
+<div class="flex min-h-screen">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+  
+  {# Main Content #}
+  <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+    <div class="max-w-[600px] mx-auto">
+      
+      {# ========== Card ========== #}
+      <div class="card bg-white shadow-xl border border-red-200">
+        <div class="card-body p-8">
+          
+          {# Icon #}
+          <div class="flex justify-center mb-6">
+            <div class="bg-gradient-to-br from-red-500 to-rose-600 p-6 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+          
+          {# Title #}
+          <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">
+            ยืนยันการลบพนักงาน
+          </h2>
+          <p class="text-center text-slate-600 mb-6">
+            คุณแน่ใจหรือไม่ที่จะลบพนักงานคนนี้?
+          </p>
+          
+          {# Employee Info #}
+          <div class="bg-gradient-to-r from-red-50 to-rose-50 rounded-xl p-6 border-2 border-red-200 mb-6">
+            <div class="text-center">
+              <p class="text-sm text-slate-600 mb-1">ชื่อเล่น</p>
+              <p class="text-2xl font-bold text-slate-800 mb-3">{{ employee.nickname }}</p>
+              
+              <p class="text-sm text-slate-600 mb-1">ชื่อ-นามสกุล</p>
+              <p class="text-lg text-slate-700 mb-3">{{ employee.user.get_full_name }}</p>
+              
+              <p class="text-sm text-slate-600 mb-1">Username</p>
+              <p class="font-mono text-slate-600 mb-3">{{ employee.user.username }}</p>
+              
+              <p class="text-sm text-slate-600 mb-1">ตำแหน่ง</p>
+              {% if employee.position == 'MANAGER' %}
+                <span class="badge badge-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0">
+                  🟢 ผู้จัดการ
+                </span>
+              {% else %}
+                <span class="badge badge-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0">
+                  🔵 พนักงาน
+                </span>
+              {% endif %}
+            </div>
+          </div>
+          
+          {# Warning #}
+          <div class="alert alert-error shadow-lg mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 class="font-bold">⚠️ คำเตือน</h3>
+              <div class="text-sm">การลบจะไม่สามารถย้อนกลับได้</div>
+            </div>
+          </div>
+          
+          {# Buttons #}
+          <form method="post" class="flex gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-error gap-2 flex-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              ยืนยันลบ
+            </button>
+            <a href="{% url 'employee_list' %}" class="btn btn-ghost flex-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              ยกเลิก
+            </a>
+          </form>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

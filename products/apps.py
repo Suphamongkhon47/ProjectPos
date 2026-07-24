@@ -1,0 +1,7 @@
+# products/apps.py
+from django.apps import AppConfig
+
+class ProductsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'products'
+    verbose_name = 'ระบบจัดการสินค้า'  # (Optional) ชื่อที่จะโชว์ใน Admin

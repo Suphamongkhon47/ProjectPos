@@ -1,0 +1,281 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>จัดการสินค้า</title>
+  {% tailwind_css %}
+  <style>
+    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    .table-clean th { background-color: #f9fafb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb; padding: 1rem; white-space: nowrap; }
+    .table-clean td { border-bottom: 1px solid #f3f4f6; padding: 1rem; font-size: 0.95rem; vertical-align: middle; }
+    .stat-card { transition: all 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="text-gray-800">
+<div class="flex min-h-screen">
+
+  {% include "partials/sidebar.html" %}
+
+  <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+    <div class="max-w-[1920px] mx-auto space-y-8">
+
+      {# ========== 1. Header ========== #}
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">จัดการสินค้า</h1>
+          <p class="text-gray-500 mt-1 text-base">แก้ไขข้อมูลและราคาสินค้า (ไม่สามารถแก้ไขจำนวนสต็อก)</p>
+        </div>
+      </div>
+
+      {# Messages #}
+      {% include "partials/messages.html" %}
+
+      {# ========== 2. Key Metrics ========== #}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {# Card 1: สินค้าทั้งหมด #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">สินค้าทั้งหมด</p>
+              <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ total_products|intcomma }}</h3>
+              <p class="text-sm text-gray-400">รายการ</p>
+            </div>
+          </div>
+        </div>
+
+        {# Card 2: หมวดหมู่ #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">หมวดหมู่</p>
+              <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ categories|length|intcomma }}</h3>
+              <p class="text-sm text-gray-400">หมวด</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ========== 3. Filter & Table ========== #}
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+
+        {# Filter Bar #}
+        <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+          <form method="get" class="flex flex-col lg:flex-row gap-4 items-center flex-wrap">
+
+            {# Search #}
+            <div class="flex-1 w-full relative min-w-[200px]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" name="search" class="input input-bordered w-full pl-10 bg-white"
+                     placeholder="SKU หรือ ชื่อสินค้า..." value="{{ search }}">
+            </div>
+
+            {# หมวดหมู่ #}
+            <select name="category" class="select select-bordered bg-white w-full lg:w-48">
+              <option value="">📂 หมวดหมู่</option>
+              {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>
+                  {{ cat.name }}
+                </option>
+              {% endfor %}
+            </select>
+
+            {# สถานะสต็อก #}
+            <select name="stock_status" class="select select-bordered bg-white w-full lg:w-40">
+              <option value="">📦 สถานะสต็อก</option>
+              <option value="in_stock" {% if stock_status == 'in_stock' %}selected{% endif %}>มีสต็อก</option>
+              <option value="low_stock" {% if stock_status == 'low_stock' %}selected{% endif %}>สต็อกน้อย (≤10)</option>
+              <option value="out_of_stock" {% if stock_status == 'out_of_stock' %}selected{% endif %}>หมดสต็อก</option>
+            </select>
+
+            <div class="flex gap-2">
+              <button type="submit" class="btn btn-primary px-6">กรอง</button>
+              <a href="?" class="btn btn-ghost text-gray-500">ล้างค่า</a>
+            </div>
+          </form>
+        </div>
+
+        {# Bulk Actions Bar #}
+        <div id="bulkActions" class="hidden px-5 py-3 border-b border-yellow-200 bg-yellow-50">
+          <form method="post" action="{% url 'bulk_delete_products' %}" id="bulkDeleteForm">
+            {% csrf_token %}
+            <div class="flex gap-3 items-center">
+              <span class="text-sm font-semibold text-gray-600">เลือกแล้ว: <span id="selectedCount" class="text-primary font-bold">0</span> รายการ</span>
+              <button type="submit" class="btn btn-error btn-sm gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                ลบที่เลือก
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm text-gray-500" onclick="clearSelection()">ยกเลิก</button>
+            </div>
+          </form>
+        </div>
+
+        {# Table #}
+        <div class="overflow-x-auto">
+          <table class="table table-clean w-full">
+            <thead>
+              <tr>
+                <th class="w-10 text-center">
+                  <input type="checkbox" id="selectAll" class="checkbox checkbox-sm" onchange="toggleSelectAll()">
+                </th>
+                <th class="w-12 text-center">#</th>
+                <th>SKU</th>
+                <th>ชื่อสินค้า</th>
+                <th>หมวดหมู่</th>
+                <th>รุ่นรถ</th>
+                <th class="text-right">สต็อก</th>
+                <th class="text-right">ราคาทุน</th>
+                <th class="text-right">ราคาขาย</th>
+                <th class="text-right">ราคาส่ง</th>
+                <th class="text-center w-28">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in products %}
+              <tr class="group hover:bg-gray-50 transition-colors">
+                <td class="text-center">
+                  <input type="checkbox" name="product_ids" value="{{ p.id }}"
+                         class="checkbox checkbox-sm product-checkbox"
+                         onchange="updateBulkActions()">
+                </td>
+                <td class="text-center text-gray-400 font-mono text-sm">{{ forloop.counter }}</td>
+                <td><span class="font-mono font-bold text-sm text-gray-800">{{ p.sku }}</span></td>
+                <td>
+                  <div class="font-medium text-gray-800">{{ p.name }}</div>
+                  <div class="text-xs text-gray-400">{{ p.unit }} · {{ p.items_per_purchase_unit }} ชิ้น/หน่วย</div>
+                </td>
+                <td>
+                  <span class="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">{{ p.category.name }}</span>
+                </td>
+                <td>
+                  {% if p.compatible_models %}
+                    <div class="text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded-md border border-orange-200 max-w-xs">
+                      🚗 {{ p.compatible_models }}
+                    </div>
+                  {% else %}
+                    <span class="text-gray-300 text-xs">-</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if p.stock_quantity > 10 %}
+                    <span class="inline-block text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded-md">{{ p.stock_quantity|floatformat:0 }}</span>
+                  {% elif p.stock_quantity > 0 %}
+                    <span class="inline-block text-xs font-bold text-yellow-700 bg-yellow-50 px-2 py-1 rounded-md">{{ p.stock_quantity|floatformat:0 }}</span>
+                  {% else %}
+                    <span class="inline-block text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-right text-gray-600">{{ p.cost_price|floatformat:2|intcomma }}</td>
+                <td class="text-right font-bold text-green-600">{{ p.selling_price|floatformat:2|intcomma }}</td>
+                <td class="text-right text-gray-500">{{ p.wholesale_price|floatformat:2|intcomma }}</td>
+                <td class="text-center">
+                  <div class="flex items-center justify-center gap-1">
+                    <a href="{% url 'edit_product' p.id %}" class="btn btn-ghost btn-xs text-yellow-600 hover:bg-yellow-50" title="แก้ไข">✏️</a>
+                    <a href="{% url 'product_history' p.id %}" class="btn btn-ghost btn-xs text-blue-500 hover:bg-blue-50" title="ประวัติ">📊</a>
+                    <form method="post" action="{% url 'delete_product' p.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-ghost btn-xs text-red-500 hover:bg-red-50" title="ลบ"
+                              onclick="return confirm('คุณแน่ใจว่าจะลบสินค้า \'{{ p.sku }}\' ใช่หรือไม่?')">🗑️</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="11" class="text-center py-16">
+                  <div class="flex flex-col items-center justify-center text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <p class="text-base font-medium">ไม่พบสินค้า</p>
+                    <p class="text-sm text-gray-400 mt-1">ลองเปลี่ยนเงื่อนไขการค้นหา</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {# Pagination #}
+        {% if products.has_other_pages %}
+        <div class="p-4 border-t border-gray-100 flex justify-center bg-gray-50/30">
+          <div class="join shadow-sm bg-white">
+            {% if products.has_previous %}
+              <a href="?page={{ products.previous_page_number }}&search={{ search }}&category={{ category_id }}&stock_status={{ stock_status }}"
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">«</a>
+            {% endif %}
+            <button class="join-item btn btn-md bg-white border-gray-200 no-animation font-normal text-gray-500 cursor-default">หน้า {{ products.number }} / {{ products.paginator.num_pages }}</button>
+            {% if products.has_next %}
+              <a href="?page={{ products.next_page_number }}&search={{ search }}&category={{ category_id }}&stock_status={{ stock_status }}"
+                 class="join-item btn btn-md bg-white border-gray-200 hover:bg-gray-50">»</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    document.querySelectorAll('.product-checkbox').forEach(cb => {
+      cb.checked = selectAll.checked;
+    });
+    updateBulkActions();
+  }
+
+  function updateBulkActions() {
+    const count = document.querySelectorAll('.product-checkbox:checked').length;
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (count > 0) {
+      bulkActions.classList.remove('hidden');
+      selectedCount.textContent = count;
+    } else {
+      bulkActions.classList.add('hidden');
+    }
+  }
+
+  function clearSelection() {
+    document.getElementById('selectAll').checked = false;
+    document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+    updateBulkActions();
+  }
+
+  document.getElementById('bulkDeleteForm')?.addEventListener('submit', function(e) {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    const count = checkboxes.length;
+
+    if (count === 0) {
+      e.preventDefault();
+      alert('❌ กรุณาเลือกสินค้าที่ต้องการลบ');
+      return false;
+    }
+
+    const skus = Array.from(checkboxes).map(cb => {
+      return cb.closest('tr').querySelector('.font-mono').textContent.trim();
+    }).join(', ');
+
+    if (!confirm(`⚠️ คุณแน่ใจว่าจะลบสินค้า ${count} รายการ?\n\nSKU: ${skus}\n\n❌ การลบไม่สามารถยกเลิกได้!`)) {
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
+
+</body>
+</html>

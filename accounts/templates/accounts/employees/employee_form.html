@@ -1,0 +1,230 @@
+{% load tailwind_tags %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% if is_edit %}✏️ แก้ไข{% else %}➕ เพิ่ม{% endif %}พนักงาน</title>
+  {% tailwind_css %}
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100">
+
+<div class="flex min-h-screen">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+  
+  {# Main Content #}
+  <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+    <div class="max-w-[800px] mx-auto">
+      
+      {# ========== Header ========== #}
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          {% if is_edit %}
+            ✏️ แก้ไขข้อมูล: {{ employee.nickname }}
+          {% else %}
+            ➕ เพิ่มพนักงานใหม่
+          {% endif %}
+        </h1>
+        <p class="text-slate-600">กรอกข้อมูลพนักงาน</p>
+      </div>
+      
+      {# Messages #}
+      {% include "partials/messages.html" %}
+      
+      {# ========== Form ========== #}
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        {# ========== 1. บัญชีผู้ใช้ (เพิ่มใหม่) ========== #}
+        {% if not is_edit %}
+        <div class="card bg-white shadow-lg border border-slate-200">
+          <div class="card-body p-6">
+            <h2 class="flex items-center gap-2 text-lg font-bold text-slate-800 mb-4">
+              🔐 บัญชีผู้ใช้งาน
+            </h2>
+            <div class="grid gap-4">
+              <div class="form-control">
+                <label class="label"><span class="label-text font-semibold">Username *</span></label>
+                <input type="text" name="username" class="input input-bordered" placeholder="ภาษาอังกฤษเท่านั้น" required>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="form-control">
+                  <label class="label"><span class="label-text font-semibold">รหัสผ่าน *</span></label>
+                  <input type="password" name="password" class="input input-bordered" required>
+                </div>
+                <div class="form-control">
+                  <label class="label"><span class="label-text font-semibold">ยืนยันรหัสผ่าน *</span></label>
+                  <input type="password" name="confirm_password" class="input input-bordered" required>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ========== 2. เปลี่ยนรหัสผ่าน (เฉพาะตอนแก้ไข) ========== #}
+        {% if is_edit %}
+        <div class="card bg-white shadow-lg border border-slate-200">
+          <div class="card-body p-6">
+            <h2 class="flex items-center gap-2 text-lg font-bold text-slate-800 mb-2">
+              🔐 จัดการรหัสผ่าน
+            </h2>
+            
+            <div class="form-control">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input type="checkbox" name="change_password" id="changePasswordCheck" class="checkbox checkbox-primary">
+                <span class="label-text font-medium">ต้องการเปลี่ยนรหัสผ่านใหม่</span>
+              </label>
+            </div>
+
+            {# Hidden Fields #}
+            <div id="passwordFields" class="hidden mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200  md:grid-cols-2 gap-4">
+               <div class="form-control">
+                  <label class="label"><span class="label-text font-semibold">รหัสผ่านใหม่</span></label>
+                  <input type="password" name="new_password" class="input input-bordered">
+               </div>
+               <div class="form-control">
+                  <label class="label"><span class="label-text font-semibold">ยืนยันรหัสผ่าน</span></label>
+                  <input type="password" name="confirm_password" class="input input-bordered">
+               </div>
+               <div class="col-span-2">
+                 <div class="alert alert-warning text-sm shadow-sm">
+                   <span>⚠️ เจ้าของร้านสามารถตั้งรหัสผ่านใหม่ให้พนักงานได้ทันทีโดยไม่ต้องรู้รหัสเดิม</span>
+                 </div>
+               </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ========== 3. ข้อมูลส่วนตัว & รูปภาพ ========== #}
+        <div class="card bg-white shadow-lg border border-slate-200">
+          <div class="card-body p-6">
+            <h2 class="flex items-center gap-2 text-lg font-bold text-slate-800 mb-4">
+              👤 ข้อมูลส่วนตัว
+            </h2>
+            
+            {# --- อัปโหลดรูปภาพ --- #}
+            <div class="flex flex-col md:flex-row gap-6 mb-6 items-center md:items-start">
+              <div class="avatar">
+                <div class="w-32 rounded-xl ring ring-primary ring-offset-base-100 ring-offset-2">
+                  {# ถ้ามีรูปเดิม (Base64) ให้โชว์ ถ้าไม่มีใช้รูป Default #}
+                  {% if form_data.avatar %}
+                    <img id="previewImg" src="{{ form_data.avatar }}" alt="Avatar" />
+                  {% else %}
+                    <img id="previewImg" src="https://ui-avatars.com/api/?name={{ form_data.nickname|default:'User' }}&background=random" alt="Avatar" />
+                  {% endif %}
+                </div>
+              </div>
+              <div class="form-control w-full max-w-xs">
+                <label class="label"><span class="label-text font-semibold">รูปโปรไฟล์</span></label>
+                <input type="file" name="avatar" class="file-input file-input-bordered w-full" accept="image/*" onchange="previewImage(event)">
+                <label class="label">
+                  <span class="label-text-alt text-slate-500">รองรับไฟล์ JPG, PNG (ไม่เกิน 5MB)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              {# ชื่อเล่น #}
+              <div class="form-control">
+                <label class="label"><span class="label-text font-semibold">ชื่อเล่น *</span></label>
+                <input type="text" name="nickname" class="input input-bordered" value="{{ form_data.nickname }}" required>
+              </div>
+              
+              {# เบอร์โทร #}
+              <div class="form-control">
+                <label class="label"><span class="label-text font-semibold">เบอร์โทรศัพท์</span></label>
+                <input type="text" name="phone" class="input input-bordered" value="{{ form_data.phone }}">
+              </div>
+              
+              {# ชื่อ-นามสกุล #}
+              <div class="form-control">
+                <label class="label"><span class="label-text font-semibold">ชื่อจริง *</span></label>
+                <input type="text" name="first_name" class="input input-bordered" value="{{ form_data.first_name }}" required>
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text font-semibold">นามสกุล *</span></label>
+                <input type="text" name="last_name" class="input input-bordered" value="{{ form_data.last_name }}" required>
+              </div>
+              
+              {# ที่อยู่ #}
+              <div class="form-control md:col-span-2">
+                <label class="label"><span class="label-text font-semibold">ที่อยู่</span></label>
+                <textarea name="address" class="textarea textarea-bordered h-24">{{ form_data.address }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {# ========== 4. การกำหนดสิทธิ์ (Superuser Only) ========== #}
+        {% if is_edit and request.user.is_superuser %}
+          <div class="card bg-white shadow-lg border border-slate-200">
+            <div class="card-body p-6">
+              <h2 class="flex items-center gap-2 text-lg font-bold text-slate-800 mb-4">
+                <div class="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                กำหนดระดับผู้ใช้งาน
+              </h2>
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-semibold text-slate-700">เลือกตำแหน่ง *</span>
+                  </label>
+                  <select name="role_selection" class="select select-bordered text-base bg-yellow-50">
+                    <option value="EMPLOYEE" {% if not employee.user.is_superuser %}selected{% endif %}>
+                      🔵 พนักงานทั่วไป (Staff) - ขายของ เช็คสต็อก
+                    </option>
+                    <option value="OWNER" {% if employee.user.is_superuser %}selected{% endif %}>
+                      👑 เจ้าของร้าน (Superuser) - สิทธิ์สูงสุด
+                    </option>
+                  </select>
+                </div>
+            </div>
+          </div>
+        {% endif %}
+        
+        {# ปุ่มบันทึก #}
+        <div class="flex gap-2 pt-4">
+          <button type="submit" class="btn btn-primary gap-2 flex-1 shadow-lg text-lg">
+            💾 บันทึกข้อมูล
+          </button>
+          <a href="{% url 'employee_list' %}" class="btn btn-ghost text-lg">
+             ยกเลิก
+          </a>
+        </div>
+      </form>
+      
+    </div>
+  </main>
+</div>
+
+{# Script: จัดการ Toggle Password และ Preview รูป #}
+<script>
+  // 1. Toggle Password Fields
+  const check = document.getElementById('changePasswordCheck');
+  const fields = document.getElementById('passwordFields');
+  if(check && fields){
+    check.addEventListener('change', function(){
+      if(this.checked) fields.classList.remove('hidden');
+      else fields.classList.add('hidden');
+    });
+  }
+
+  // 2. Preview Image
+  function previewImage(event) {
+    const reader = new FileReader();
+    reader.onload = function(){
+      const output = document.getElementById('previewImg');
+      output.src = reader.result;
+    }
+    reader.readAsDataURL(event.target.files[0]);
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,248 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>📦 รายงานยอดขายตามสินค้า</title>
+  {% tailwind_css %}
+  <style>
+    body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f3f4f6; }
+    
+    .table-clean th { 
+      background-color: #f9fafb; 
+      color: #6b7280; 
+      font-weight: 600; 
+      text-transform: uppercase; 
+      font-size: 0.75rem; /* ปรับลดขนาดเล็กน้อยเพื่อให้ตารางไม่แน่นเกินไป */
+      letter-spacing: 0.05em; 
+      border-bottom: 1px solid #e5e7eb; 
+      padding: 0.75rem;
+      white-space: nowrap;
+    }
+    .table-clean td { 
+      border-bottom: 1px solid #f3f4f6; 
+      padding: 0.75rem; 
+      font-size: 0.85rem; 
+      vertical-align: middle;
+      color: #111827;
+    }
+    .stat-card { transition: all 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="text-gray-900">
+
+<div class="flex min-h-screen">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+  
+  {# Main Content #}
+  <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+    <div class="max-w-[1920px] mx-auto space-y-8">
+      
+      {# Header #}
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">รายงานยอดขายตามสินค้า</h1>
+          <p class="text-gray-500 mt-1 text-base">วิเคราะห์สินค้าขายดี ยอดขาย และกำไรรายตัว</p>
+        </div>
+      </div>
+
+      {# Summary Cards #}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {# Card 1 #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">ยอดขายสินค้ารวม</p>
+              <h3 class="text-2xl font-bold text-indigo-700 mt-1">{{ summary.total_sales|floatformat:2|intcomma }}</h3>
+              <p class="text-sm text-gray-400">บาท</p>
+            </div>
+          </div>
+        </div>
+        {# Card 2 #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">กำไรสุทธิ</p>
+              <h3 class="text-2xl font-bold text-emerald-600 mt-1">+{{ summary.total_profit|floatformat:2|intcomma }}</h3>
+              <p class="text-sm text-gray-400">บาท</p>
+            </div>
+          </div>
+        </div>
+        {# Card 3 #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">จำนวนที่ขายได้</p>
+              <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ summary.total_qty|floatformat:0|intcomma }}</h3>
+              <p class="text-sm text-gray-400">ชิ้น/รายการ</p>
+            </div>
+          </div>
+        </div>
+        {# Card 4 #}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 stat-card">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+            </div>
+            <div class="overflow-hidden">
+              <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">สินค้าขายดีอันดับ 1</p>
+              <h3 class="text-xl font-bold text-orange-600 mt-1 truncate" title="{{ summary.best_seller }}">
+                {{ summary.best_seller }}
+              </h3>
+              <p class="text-sm text-gray-400">ยอดนิยม</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Filter & Table #}
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        {# Filter #}
+        <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+          <form method="get" class="flex flex-col lg:flex-row gap-4 items-center flex-wrap">
+            <div class="flex gap-2 w-full lg:w-auto">
+              <input type="date" name="date_from" class="input input-bordered bg-white" value="{{ date_from }}"> 
+              <span class="self-center text-gray-400 font-medium">-</span>
+              <input type="date" name="date_to" class="input input-bordered bg-white" value="{{ date_to }}">
+            </div>
+
+            <div class="flex-1 w-full lg:min-w-[200px] relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" name="search" class="input input-bordered w-full pl-10 bg-white" placeholder="ค้นหาชื่อสินค้า, รหัส SKU..." value="{{ search }}">
+            </div>
+
+            <select name="category" class="select select-bordered bg-white w-full lg:w-48">
+              <option value="">📂 ทุกหมวดหมู่</option>
+              {% for cat in categories %}
+              <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+
+            <button type="submit" class="btn btn-primary px-6">ค้นหา</button>
+            <a href="?" class="btn btn-ghost text-gray-500">ล้างค่า</a>
+          </form>
+        </div>
+
+        {# Table #}
+        <div class="overflow-x-auto">
+          <table class="table table-clean w-full">
+            <thead>
+              <tr>
+                <th class="w-12 text-center">#</th>
+                <th>สินค้า</th>
+                <th>หมวดหมู่</th>
+                
+                {# ✅ เพิ่มคอลัมน์ราคา #}
+                <th class="text-right">ราคาทุน</th>
+                <th class="text-right">ราคาขาย</th>
+                <th class="text-right">ราคาส่ง</th>
+                <th class="text-right">จำนวนขาย</th>
+                <th class="text-right">ยอดขายรวม</th>
+                <th class="text-right">กำไร</th>
+                <th class="text-right">คงเหลือ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in report_data %}
+              <tr class="group hover:bg-gray-50 transition-colors">
+                <td class="text-center font-mono text-xs text-gray-400">{{ forloop.counter }}</td>
+                
+                <td>
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-gray-900 text-sm">{{ item.product__name }}</span>
+                        {% if item.product__is_bundle %}
+                            <span class="badge badge-xs badge-info text-white">SET</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-xs text-gray-500 font-mono whitespace-nowrap">{{ item.product__sku }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class=" badge badge-primary badge-sm whitespace-nowrap">{{ item.product__category__name }}</span>
+                </td>
+                
+                {# ✅ แสดงข้อมูลราคา #}
+                <td class="text-right text-gray-500 font-mono text-xs">
+                    {{ item.product__cost_price|floatformat:2|intcomma }}
+                </td>
+                <td class="text-right text-gray-900 font-medium text-sm">
+                    {{ item.product__selling_price|floatformat:2|intcomma }}
+                </td>
+                <td class="text-right text-gray-500 font-mono text-xs">
+                    {{ item.product__wholesale_price|floatformat:2|intcomma }}
+                </td>
+                
+                <td class="text-right">
+                  <span class="font-bold text-gray-800">{{ item.total_qty|floatformat:0|intcomma }}</span>
+                  <span class="text-xs text-gray-400 ml-1">{{ item.product__unit }}</span>
+                </td>
+                
+                <td class="text-right">
+                  <span class="font-bold text-indigo-700">{{ item.total_sales|floatformat:2|intcomma }}</span>
+                </td>
+                
+                <td class="text-right">
+                  {% if item.profit > 0 %}
+                    <span class="font-bold text-emerald-600">+{{ item.profit|floatformat:2|intcomma }}</span>
+                  {% elif item.profit < 0 %}
+                    <span class="font-bold text-red-500">{{ item.profit|floatformat:2|intcomma }}</span>
+                  {% else %}
+                    <span class="text-gray-400">-</span>
+                  {% endif %}
+                </td>
+                
+                {# คงเหลือ (Real Stock) #}
+                <td class="text-right align-top">
+                  <div class="flex flex-col items-end">
+                    {% if item.real_stock <= 0 %}
+                      <span class="badge badge-error badge-sm text-white border-0">หมด</span>
+                    {% elif item.real_stock <= 5 %}
+                      <span class="text-orange-600 font-bold text-base">{{ item.real_stock|floatformat:0|intcomma }}</span>
+                    {% else %}
+                      <span class="text-gray-900 text-base font-medium">{{ item.real_stock|floatformat:0|intcomma }}</span>
+                    {% endif %}
+
+                    {% if item.product__is_bundle %}
+                       <span class="text-[10px] text-gray-400 mt-0.5 font-light">(ประกอบได้)</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" class="text-center py-16">
+                  <div class="flex flex-col items-center justify-center text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <p class="text-base font-medium">ไม่พบข้อมูลสินค้าในช่วงเวลานี้</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+      
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

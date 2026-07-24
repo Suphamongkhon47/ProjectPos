@@ -1,0 +1,329 @@
+{% load tailwind_tags %}
+{% load humanize %}
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>รายละเอียดบิล {{ purchase.doc_no }}</title>
+  {% tailwind_css %}
+</head>
+<body class="bg-base-200">
+<div class="flex min-h-screen">
+
+  {# ========== Sidebar (ซ่อนตอนพิมพ์) ========== #}
+  <div class="no-print">
+    {% include "partials/sidebar.html" %}
+  </div>
+
+  {# ========== Main Content ========== #}
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="max-w-[1400px] mx-auto">
+      
+      {# ========== Header ========== #}
+      <div class="mb-6 no-print">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">📄 รายละเอียดเอกสารรับเข้า</h1>
+            <p class="text-gray-600">เลขที่: <span class="font-mono font-bold">{{ purchase.doc_no }}</span></p>
+          </div>
+          <div class="flex gap-2">
+            {# ปุ่มกลับ #}
+            <a href="{% url 'purchase_report' %}" class="btn btn-ghost gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              กลับ
+            </a>
+            {# ปุ่มยกเลิก (แสดงเฉพาะ DRAFT) #}
+            {% if purchase.status == 'DRAFT' %}
+            <form method="post" action="{% url 'cancel_purchase' purchase.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-error gap-2" 
+                      onclick="return confirm('คุณแน่ใจว่าจะยกเลิกเอกสาร {{ purchase.doc_no }} ใช่หรือไม่?')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                ยกเลิกเอกสาร
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# Messages #}
+      <div class="no-print mb-6">
+        {% if messages %}
+          {% for m in messages %}
+            <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% elif m.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                {% if m.tags == 'success' %}
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% else %}
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% endif %}
+              </svg>
+              <span>{{ m }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      {# ========== ข้อมูลหัวบิล ========== #}
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <div class="grid md:grid-cols-2 gap-6">
+            {# ซ้าย #}
+            <div>
+              <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                ข้อมูลเอกสาร
+              </h2>
+              
+              <div class="space-y-3">
+                <div class="flex">
+                  <span class="font-semibold w-32">เลขที่:</span>
+                  <span class="font-mono font-bold text-primary">{{ purchase.doc_no }}</span>
+                </div>
+                
+                <div class="flex">
+                  <span class="font-semibold w-32">วันที่:</span>
+                  <span>{{ purchase.purchase_date|date:"d/m/Y H:i" }} น.</span>
+                </div>
+                
+                <div class="flex">
+                  <span class="font-semibold w-32">ซัพพลายเออร์:</span>
+                  <span class="badge badge-primary badge-lg">{{ purchase.supplier.name }}</span>
+                </div>
+                
+                <div class="flex">
+                  <span class="font-semibold w-32">สถานะ:</span>
+                  <span>
+                    {% if purchase.status == 'DRAFT' %}
+                      <span class="badge badge-ghost badge-lg">📝 Draft</span>
+                    {% elif purchase.status == 'POSTED' %}
+                      <span class="badge badge-success badge-lg">✅ Posted</span>
+                    {% elif purchase.status == 'CANCELLED' %}
+                      <span class="badge badge-error badge-lg">❌ Cancelled</span>
+                    {% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {# ขวา #}
+            <div>
+              <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                ข้อมูลเพิ่มเติม
+              </h2>
+              
+              <div class="space-y-3">
+                <div class="flex">
+                  <span class="font-semibold w-32">ผู้บันทึก:</span>
+                  <span class="badge badge-outline">{{ purchase.created_by.username }}</span>
+                </div>
+                
+                <div class="flex">
+                  <span class="font-semibold w-32">วันที่บันทึก:</span>
+                  <span>{{ purchase.created_at|date:"d/m/Y H:i" }} น.</span>
+                </div>
+                
+                {% if purchase.remark %}
+                <div class="flex">
+                  
+                  <span class="text-sm text-gray-600">{{ purchase.remark }}</span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {# ข้อมูลซัพพลายเออร์ #}
+          {% if purchase.supplier.phone or purchase.supplier.address %}
+          <div class="divider"></div>
+          <div>
+            <h3 class="font-bold mb-2">📞 ข้อมูลติดต่อซัพพลายเออร์</h3>
+            <div class="grid md:grid-cols-3 gap-4 text-sm">
+              {% if purchase.supplier.phone %}
+              <div>
+                <span class="font-semibold">โทร:</span> {{ purchase.supplier.phone }}
+              </div>
+              {% endif %}
+              {% if purchase.supplier.address %}
+              <div class="md:col-span-3">
+                <span class="font-semibold">ที่อยู่:</span> {{ purchase.supplier.address }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ========== ตารางรายการสินค้า ========== #}
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">📦 รายการสินค้า</h2>
+          
+          <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+              <thead class="bg-gradient-to-r from-green-600 to-blue-600 text-white">
+                <tr>
+                  <th class="text-center">#</th>
+                  <th>รหัส</th>
+                  <th>ชื่อสินค้า</th>
+                  <th>หมวด</th>
+                  <th class="w-1/4">🚗 รุ่นรถที่ใช้ได้</th>
+                  <th class="text-right">จำนวน</th>
+                  <th class="text-right">ราคา/หน่วย</th>
+                  <th class="text-right">รวม</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                <tr>
+                  <td class="text-center font-bold">{{ forloop.counter }}</td>
+                  <td>
+                    <span class="badge badge-neutral font-mono font-bold whitespace-nowrap">{{ item.product.sku }}</span>
+                  </td>
+                  <td>
+                    <div class="font-bold">{{ item.product.name }}</div>
+                    <div class="text-xs text-gray-500 mt-1">{{ item.product.unit }}</div>
+                  </td>
+                  <td>
+                    <span class="badge badge-primary badge-sm whitespace-nowrap">{{ item.product.category.name }}</span>
+                  </td>
+                  <td>
+                    <div class="text-sm">
+                      {% if item.product.compatible_models %}
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+                          <div class="flex items-start gap-1">
+                            <span class="text-orange-600 text-xs">🚗</span>
+                            <div class="text-orange-800 leading-relaxed">
+                              {{ item.product.compatible_models }}
+                            </div>
+                          </div>
+                        </div>
+                      {% else %}
+                        <span class="text-gray-400">-</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="text-right">
+                    <div class="font-semibold">{{ item.quantity|floatformat:0 }} {{ item.product.unit }}</div>
+                    {% if item.product.pieces_per_unit != 1 %}
+                      <div class="text-xs text-gray-500">
+                        ({{ item.actual_stock|floatformat:0 }} ชิ้น)
+                      </div>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">{{ item.unit_cost|floatformat:2 }}</td>
+                  <td class="text-right">
+                    <span class="font-bold text-green-600">{{ item.line_total|default:0|floatformat:2|intcomma }}</span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-gray-500">
+                    ไม่มีรายการสินค้า
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="bg-gray-100">
+                <tr class="font-bold">
+                  <td colspan="7" class="text-right">ยอดรวมทั้งสิ้น:</td>
+                  <td class="text-right">
+                    <span class="text-xl text-green-600">{{ total_amount|default:0|floatformat:2|intcomma }}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="8" class="text-right text-gray-500 text-sm">บาท</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {# ========== สรุปสต็อก ========== #}
+      <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">📊 สรุปการเคลื่อนไหวสต็อก</h2>
+          
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead class="bg-blue-100">
+                <tr>
+                  <th>รหัส</th>
+                  <th>ชื่อสินค้า</th>
+                  <th class="text-right">จำนวนที่รับ</th>
+                  <th class="text-right">ชิ้น/หน่วย</th>
+                  <th class="text-right">เพิ่มสต็อก (ชิ้น)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                <tr>
+                  <td class="font-mono text-xs badge badge-ghost">{{ item.product.sku }}</td>
+                  <td>{{ item.product.name }}</td>
+                  <td class="text-right">{{ item.quantity|floatformat:0 }} {{ item.product.unit }}</td>
+                  <td class="text-right">{{ item.product.pieces_per_unit|floatformat:0 }} ชิ้น/{{ item.product.purchase_unit_name|default:item.product.unit }}</td>
+                  <td class="text-right">
+                    <span class="badge badge-success font-bold">
+                      +{{ item.actual_stock|floatformat:0 }} ชิ้น
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if purchase.status == 'POSTED' %}
+          <div class="alert alert-success mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>เอกสารนี้ยืนยันแล้ว สต็อกได้รับการอัปเดตเรียบร้อย</span>
+          </div>
+          {% elif purchase.status == 'DRAFT' %}
+          <div class="alert alert-warning mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>เอกสารนี้เป็นแบบร่าง (DRAFT) ยังไม่ได้ตัดสต็อก</span>
+          </div>
+          {% elif purchase.status == 'CANCELLED' %}
+          <div class="alert alert-error mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>เอกสารนี้ถูกยกเลิกแล้ว</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ========== Print Version (ซ่อนบนหน้าจอ แสดงตอนพิมพ์) ========== #}
+      <div class="print-only">
+        <div class="text-center mb-4">
+          <h1 class="text-2xl font-bold">เอกสารรับเข้าสินค้า</h1>
+          <p class="text-lg">เลขที่: {{ purchase.doc_no }}</p>
+        </div>
+        <div class="text-sm text-right mb-2">
+          วันที่พิมพ์: {% now "d/m/Y H:i" %} น.
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

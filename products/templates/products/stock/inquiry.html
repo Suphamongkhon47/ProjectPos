@@ -1,0 +1,288 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 ตรวจสอบสต็อก</title>
+    {% load tailwind_tags %}
+    {% tailwind_css %}
+    <style>
+        body { font-family: 'Inter', 'Sarabun', sans-serif; background-color: #f8fafc; }
+        
+        /* Clean Table Style */
+        .table-clean th { 
+            background-color: #f1f5f9; 
+            color: #64748b; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            font-size: 0.75rem; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding: 12px 16px;
+            white-space: nowrap;
+        }
+        .table-clean td { 
+            border-bottom: 1px solid #f8fafc; 
+            padding: 12px 16px; 
+            vertical-align: middle; 
+            color: #334155; 
+            font-size: 0.9rem;
+        }
+        .table-clean tr:hover td { background-color: #eff6ff; } /* สีฟ้าจางๆ ตอน Hover */
+
+        /* Input Clean */
+        .input-clean {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .input-clean:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+<div class="flex h-full">
+    
+    {# Sidebar #}
+    {% include "partials/sidebar.html" %}
+    
+    {# Main Content #}
+    <main class="flex-1 flex flex-col min-w-0 bg-[#f8fafc]">
+        
+        {# Header & Search Bar #}
+        <div class="bg-white border-b border-slate-200 px-8 py-5 shadow-sm z-10">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <span class="text-blue-600">🔍</span> เช็คราคา & สต็อกสินค้า
+                    </h1>
+                </div>
+                
+                {# Search Toolbar #}
+                <div class="flex gap-3">
+                    <div class="relative flex-1">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">📦</span>
+                        <input type="text" id="product-search" 
+                               class="input input-bordered w-full pl-10 bg-slate-50 focus:bg-white transition-all shadow-sm h-11" 
+                               placeholder="ชื่อสินค้า, รหัส SKU (กด Enter เพื่อค้นหา)..." autofocus>
+                    </div>
+                    <div class="relative w-1/4 min-w-[200px]">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🚗</span>
+                        <input type="text" id="model-search" 
+                               class="input input-bordered w-full pl-10 bg-slate-50 focus:bg-white shadow-sm h-11" 
+                               placeholder="รุ่นรถ (เช่น Vios)...">
+                    </div>
+                    <button onclick="searchStock()" class="btn btn-primary px-8 h-11 min-h-0 text-base shadow-md shadow-blue-100">
+                        ค้นหา
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {# Content Area #}
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="max-w-6xl mx-auto">
+                
+                {# Default State #}
+                <div id="default-state" class="text-center py-24 text-slate-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p class="text-lg font-medium text-slate-400">พิมพ์คำค้นหาเพื่อตรวจสอบราคาและสต็อก</p>
+                </div>
+
+                {# Loading #}
+                <div id="loading" class="hidden text-center py-20">
+                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                    <p class="text-slate-500 mt-2">กำลังโหลดข้อมูล...</p>
+                </div>
+
+                {# Results Table #}
+                <div id="results-area" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">รายการสินค้า</span>
+                        <span class="badge badge-ghost badge-sm border-slate-200 text-slate-500">พบ <span id="result-count" class="font-bold mx-1">0</span> รายการ</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="table table-clean w-full">
+                            <thead>
+                                <tr>
+                                    <th class="w-10 text-center">สถานะ</th>
+                                    <th>รายละเอียดสินค้า</th>
+                                    <th class="text-right w-32 bg-green-50/50">ราคาปลีก</th>
+                                    <th class="text-right w-32 bg-blue-50/50">ราคาส่ง</th>
+                                    <th class="text-center w-24">คงเหลือ</th>
+                                    <th class="text-center w-32">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+// ฟังก์ชันค้นหา
+async function searchStock() {
+    const productQuery = document.getElementById('product-search').value.trim();
+    const modelQuery = document.getElementById('model-search').value.trim();
+    
+    if (!productQuery && !modelQuery) {
+        document.getElementById('product-search').focus();
+        return;
+    }
+    
+    // UI State
+    document.getElementById('default-state').classList.add('hidden');
+    document.getElementById('results-area').classList.add('hidden');
+    document.getElementById('loading').classList.remove('hidden');
+    
+    try {
+        const params = new URLSearchParams();
+        if (productQuery) params.append('product', productQuery);
+        if (modelQuery) params.append('model', modelQuery);
+        
+        // เรียก API (ต้องมี Backend รองรับที่ /api/stock/search/)
+        const response = await fetch(`/api/stock/search/?${params}`);
+        const data = await response.json();
+        
+        displayResults(data.products);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+// ฟังก์ชันแสดงผล
+function displayResults(products) {
+    const resultsArea = document.getElementById('results-area');
+    const tbody = document.getElementById('results-body');
+    const countSpan = document.getElementById('result-count');
+    
+    if (products.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-16 text-slate-400">
+                    <div class="flex flex-col items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>ไม่พบสินค้าที่ตรงกับเงื่อนไข</span>
+                    </div>
+                </td>
+            </tr>`;
+        resultsArea.classList.remove('hidden');
+        countSpan.textContent = '0';
+        return;
+    }
+    
+    countSpan.textContent = products.length;
+    resultsArea.classList.remove('hidden');
+    
+    tbody.innerHTML = products.map(p => {
+        // --- 1. จัดการสต็อกและสี ---
+        const qty = parseFloat(p.quantity || 0);
+        let stockBadgeClass = 'bg-slate-100 text-slate-600';
+        let statusDot = 'bg-slate-300';
+        
+        if (qty <= 0) {
+            stockBadgeClass = 'bg-red-100 text-red-600 font-bold';
+            statusDot = 'bg-red-500';
+        } else if (qty <= 5) {
+            stockBadgeClass = 'bg-orange-100 text-orange-600 font-bold';
+            statusDot = 'bg-orange-500';
+        } else {
+            stockBadgeClass = 'bg-green-100 text-green-700 font-bold';
+            statusDot = 'bg-green-500';
+        }
+
+        // --- 2. ปุ่ม Action ---
+        // ถ้ามีของ -> ปุ่มขาย (ลิงก์ไปหน้าขาย)
+        // ถ้าหมด -> ปุ่มสั่งของ (Disabled หรือ Link ไปหน้าสั่งซื้อ)
+        let actionBtn = '';
+        if (qty > 0) {
+            actionBtn = `
+                <a href="/sales/?product_id=${p.id}&auto_add=1" 
+                   class="btn btn-sm btn-primary text-white font-normal shadow-sm hover:scale-105 transition-transform w-full">
+                   🛒 ขายเลย
+                </a>`;
+        } else {
+            actionBtn = `
+                <button class="btn btn-sm btn-disabled bg-slate-100 text-slate-400 border-slate-200 w-full">
+                   หมด
+                </button>`;
+        }
+
+        // --- 3. HTML Row ---
+        return `
+            <tr class="group border-b border-slate-50 last:border-0 transition-colors">
+                
+                <td class="text-center">
+                    <div class="h-2.5 w-2.5 rounded-full ${statusDot} mx-auto ring-2 ring-white shadow-sm" title="สถานะสต็อก"></div>
+                </td>
+                
+                <td>
+                    <div class="font-bold text-slate-700 text-base">${p.name}</div>
+                    <div class="flex flex-wrap items-center gap-2 mt-1">
+                        <span class="font-mono text-[11px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-200" 
+                              onclick="copyToClipboard('${p.sku}')" title="คลิกเพื่อคัดลอก SKU">
+                            ${p.sku}
+                        </span>
+                        ${p.compatible_models ? `<span class="text-[11px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">🚙 ${p.compatible_models}</span>` : ''}
+                    </div>
+                </td>
+                
+                <td class="text-right bg-green-50/30">
+                    <div class="font-bold text-slate-800 text-base">${parseFloat(p.selling_price).toLocaleString()}</div>
+                    <div class="text-[10px] text-slate-400">บาท/หน่วย</div>
+                </td>
+                
+                <td class="text-right bg-blue-50/30">
+                    <div class="font-bold text-blue-700 text-base">${parseFloat(p.wholesale_price).toLocaleString()}</div>
+                    <div class="text-[10px] text-blue-300">บาท/หน่วย</div>
+                </td>
+                
+                <td class="text-center">
+                    <span class="px-2.5 py-1 rounded text-sm ${stockBadgeClass}">
+                        ${qty.toLocaleString()}
+                    </span>
+                    <div class="text-[10px] text-slate-400 mt-1">${p.unit || 'ชิ้น'}</div>
+                </td>
+                
+                <td class="text-center px-4">
+                    ${actionBtn}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Utility: Copy SKU
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    // Optional: อาจจะใส่ Toast เล็กๆ แจ้งเตือนว่า Copy แล้ว
+}
+
+// Bind Enter Key
+document.getElementById('product-search').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchStock();
+});
+document.getElementById('model-search').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchStock();
+});
+</script>
+
+</body>
+</html>
