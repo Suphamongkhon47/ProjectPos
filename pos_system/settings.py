@@ -101,17 +101,19 @@ PROMPTPAY_PHONE = '0834755649'  # ⚠️ เปลี่ยนเป็นเบ
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'pos_system'),
-        'USER': os.environ.get('DB_USER', 'root'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'admin123'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
+        'NAME': os.environ.get('DB_NAME', 'defaultdb'),
+        'USER': os.environ.get('DB_USER', 'avnadmin'),
+        # 🟢 ใส่รหัสผ่าน Aiven ของคุณในอัญประกาศตรงนี้ได้เลยครับ
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'AVNS_4FLi-ovvxx1-dv55QAj'), 
+        'HOST': os.environ.get('DB_HOST', 'mysql-2d652ccb-project-ubu26.h.aivencloud.com'),
+        'PORT': os.environ.get('DB_PORT', '16240'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
-            # ถ้าต่อผ่าน Render/Aiven (มี DB_HOST) จะเปิดใช้ SSL อัตโนมัติ 
-            # แต่ถ้ารันในเครื่องตัวเอง (ไม่มี DB_HOST) จะรันแบบธรรมดาเหมือนเดิม
-            'ssl': {'ssl_mode': 'REQUIRED'} if os.environ.get('DB_HOST') else {},
+            'ssl': {
+                'check_hostname': False,
+                'ssl_mode': 'REQUIRED',
+            }
         },
     }
 }
