@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-
+import dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,6 +28,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+dotenv.load_dotenv()
 
 # Application definition
 
@@ -103,8 +104,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('DB_NAME', 'defaultdb'),
         'USER': os.environ.get('DB_USER', 'avnadmin'),
-        # 🟢 ใส่รหัสผ่าน Aiven ของคุณในอัญประกาศตรงนี้ได้เลยครับ
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'AVNS_4FLi-ovvxx1-dv55QAj'), 
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),  # ปล่อยเป็นค่าว่างไว้ ห้ามพิมพ์รหัสผ่านตรงนี้
         'HOST': os.environ.get('DB_HOST', 'mysql-2d652ccb-project-ubu26.h.aivencloud.com'),
         'PORT': os.environ.get('DB_PORT', '16240'),
         'OPTIONS': {
